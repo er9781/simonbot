@@ -18,3 +18,15 @@ Array.prototype.filterAsync = function(f) {
             })
     );
 };
+
+Array.prototype.removeAsync = function(f) {
+    return (
+        Promise.all(this.map((el, idx, arr) => f(el, idx, arr)))
+            // return a promise which resolves to a filtered array.
+            .then(results => {
+                return this.filter((_, idx) => {
+                    return !results[idx];
+                });
+            })
+    );
+};

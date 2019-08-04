@@ -87,4 +87,5 @@ const v3request = async ({ uri, headers, ...rest }) => {
 const query = query => request({ data: { query } });
 
 exports.query = query;
+exports.mutate = mutation => request({ data: { query: mutation } });
 exports.v3request = v3request;

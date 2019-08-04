@@ -16,6 +16,24 @@ exports.getUsername = async () => {
     return (await client.query(query)).body.data.viewer.login;
 };
 
+const mergePullRequest = async pr => {
+    const mutation = `
+        mutation {
+            mergePullRequest(input: {
+                pullRequestId: ${pr.id}
+            }) {
+                pullRequest {
+                    title
+                    merged
+                    closed
+                }
+            }
+        }
+    `;
+
+    return await client.mutate(mutation);
+};
+
 // lol github doesn't like it if you just request the world.
 // they have some checks. 100 comments max which is what we're actually
 // worried abotu blowing. PRs 40 would probably be sufficient but whatever.
@@ -91,22 +109,6 @@ const getPrs = async pullReqs => {
         }
     `;
 
-    // check suite query as needed.
-    // checkSuites(last: 4) {
-    //     nodes {
-    //         conclusion
-    //         status
-    //         checkRuns(last: 50) {
-    //             nodes {
-    //                 conclusion
-    //                 name
-    //                 title
-    //                 status
-    //             }
-    //         }
-    //     }
-    // }
-
     const resp = await client.query(query);
     return resp.body.data.viewer.pullRequests.nodes;
 };
@@ -127,7 +129,7 @@ const getRefStatuses = async sha => {
 const hasFailingStatus = async pr => {
     const isFailed = t => t === 'failure';
     // we actually want the last commit with statuses. sometimes the last commit won't trigger ci.
-    // why? caching? who knows.
+    // why? deps detection? I'm not actually sure.
     let statuses = null;
     const commits = [...pr.commits.nodes.map(n => n.commit)];
     commits.reverse();
@@ -170,9 +172,24 @@ const getPrsToRebase = async pullReqs => {
     return await _.orderBy(prs, 'updatedAt', 'desc').filterAsync(hasFailingStatus);
 };
 
+const getPrsToMerge = async pullReqs => {
+    return await (await getShippedPrs(pullReqs)).removeAsync(hasFailingStatus);
+};
+
+const mergePrs = async pullReqs => {
+    return await Promise.all(
+        (await getPrsToMerge(pullReqs)).map(async pr => {
+            try {
+                mergePullRequest(pr);
+            } catch (err) {
+                // ignore errors in the merge to move on to the next one. Will pick up in next main loop
+            }
+        })
+    );
+};
+
 exports.getOpenPrs = getOpenPrs;
 exports.getShippedPrs = getShippedPrs;
 exports.getUpdatePrs = getUpdatePrs;
 exports.getPrsToRebase = getPrsToRebase;
-
-exports.getRefStatuses = getRefStatuses;
+exports.mergePrs = mergePrs;

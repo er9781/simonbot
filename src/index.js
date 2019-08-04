@@ -7,6 +7,6 @@ setup
     .setup()
     .then(env => {
         // start service.
-        poller.fireloop(env);
+        return poller.fireloop(env);
     })
     .catch(err => console.log(err));
