@@ -1,27 +1,26 @@
-var github = require('../github');
-// TODO poll for PRs. And do something on each. Make event loop for this
+var github = require('../github/github');
+var fixer = require('../prfixer/fixer');
 
-// poll every 5s, or continuous depending on when last started.
+const delaySeconds = 5;
 
 const fireloop = () => {
-    // log start time,
+    const startMs = Date.now();
 
     // do main thing
     github
         .getPrsToRebase()
         .then(prs => {
-            prs.forEach(pr => {
-                console.log(pr.title);
-            });
+            const sliced = prs; //.slice(0, 1)
+            return Promise.all(sliced.map(fixer.handlePr));
         })
         .catch(err => {
             console.log(err);
+        })
+        .finally(() => {
+            // trigger next loop. wait at least some delay from last loop.
+            const delay = Math.max(0, delaySeconds * 1000 - (Date.now() - startMs));
+            setTimeout(fireloop, delay);
         });
-
-    // github
-    //     .getRefStatuses('c8e37e3b6ef810c8750798c83dafded352cbcb48')
-    //     .then(data => console.log(data))
-    //     .catch(err => console.log(err));
 
     // check end time.
 

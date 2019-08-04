@@ -1,0 +1,13 @@
+{
+  "name": "simonbot",
+  "version": "0.0.1",
+  "description": "service to automate some tasks for programming workflow",
+  "main": "src/index.js",
+  "author": "labute.simon@gmail.com",
+  "license": "UNLISCENSED",
+  "private": true,
+  "dependencies": {
+    "lodash": "^4.17.15",
+    "simple-git": "^1.124.0"
+  }
+}

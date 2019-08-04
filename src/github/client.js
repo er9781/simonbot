@@ -3,7 +3,8 @@ var https = require('https');
 
 const v4baseurl = 'https://api.github.com/graphql';
 
-// data expected to be an object. will be stringified
+// data expected to be an object. will be stringified.
+// defaults to github api v4.
 const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) => {
     console.assert(['GET', 'POST'].includes(method));
     console.assert(config.secrets.githubToken, 'Must have a github token.');
@@ -14,7 +15,7 @@ const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) 
         headers: {
             Authorization: `token ${config.secrets.githubToken}`,
             // if github breaks on us, rip. we'll deal with it then.
-            Accept: 'application/vnd.github.antiope-preview+json',
+            Accept: 'application/vnd.github.merge-info-preview+json',
             // vnd.github.merge-info-preview
             // vnd.github.antiope-preview
             'Content-Type': 'application/json',
