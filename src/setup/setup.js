@@ -3,8 +3,18 @@ var constants = require('../constants');
 var config = require('../config');
 var git = require('../git/git');
 var github = require('../github/github');
+var _ = require('lodash');
 
-exports.check = async () => {
+exports.getGitRemote = env =>
+    `https://${env.githubUsername}:${config.secrets.githubToken}@github.com/${config.secrets.repoowner}/${
+        config.secrets.repo
+    }`;
+
+const hasSameKeys = (obj1, obj2) => {
+    return _.isEqual(...[obj1, obj2].map(o => new Set(Object.keys(o))));
+};
+
+exports.setup = async () => {
     // check if secrets.json is set up.
     // if not, copy over example file and print message.
     if (!fs.existsSync(constants.CONSTANTS_FILE)) {
@@ -12,9 +22,12 @@ exports.check = async () => {
         throw new Error('Missing secrets.json. I copied it over for you, but go fill it out.');
     }
 
-    // TODO check if all keys + types match in the config files.
-
-    // TODO check github authentication.
+    // check if all secrets are there.
+    const exampleSecrets = JSON.parse(fs.readFileSync(constants.CONSTANTS_EXAMPLE_FILE));
+    if (!hasSameKeys(config.secrets, exampleSecrets)) {
+        // TODO show which keys are missing.
+        throw new Error('keys must match between the example secrets and your secrets file.');
+    }
 
     // check we have a git repo with remote set to the proper backend.
     const isRepo = await git.checkIsRepo();
@@ -28,11 +41,13 @@ exports.check = async () => {
             'clonedlocation must be a git repository with a remote called origin pointing to the configured repo'
         );
     }
-    // TODO how to check that we can push? try to fetch? And then we want to use the repo and add the token into the remote
 
-    const env = {
-        githubUsername: await github.getUsername(),
-    };
+    const env = {};
+    try {
+        env.githubUsername = await github.getUsername();
+    } catch (err) {
+        throw new Error('failed to access github api. riperino.');
+    }
 
     return env;
 };

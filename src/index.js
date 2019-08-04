@@ -1,10 +1,10 @@
 require('./monkeypatch/monkeypatch');
 var poller = require('./poller/poller');
-var check = require('./setup/check');
+var setup = require('./setup/setup');
 
 // check setup.
-check
-    .check()
+setup
+    .setup()
     .then(env => {
         // start service.
         poller.fireloop(env);

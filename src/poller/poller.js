@@ -18,8 +18,8 @@ const fireloop = env => {
             console.log(err);
         })
         .finally(() => {
-            // trigger next loop. wait at least some delay from last loop.
-            const delay = Math.max(0, delaySeconds * 1000 - (Date.now() - startMs));
+            // trigger next loop. wait at least some delay from last loop to let github get up to date.
+            const delay = Math.max(2000, delaySeconds * 1000 - (Date.now() - startMs));
             setTimeout(() => fireloop(env), delay);
         });
 };

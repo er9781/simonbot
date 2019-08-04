@@ -1,24 +1,22 @@
 var git = require('../git/git');
-var config = require('../config');
+var setup = require('../setup/setup');
 
 const getBaseBranch = pr => pr.baseRef.name;
 const getBranch = pr => pr.headRef.name;
 
 const rebasePr = async (env, pr) => {
+    const remote = setup.getGitRemote(env);
     const base = getBaseBranch(pr);
     const branch = getBranch(pr);
 
-    await git.fetch(base);
-    await git.fetch(branch);
+    await git.fetch(remote, base);
+    await git.fetch(remote, branch);
 
     await git.checkout(branch);
     await git.clean();
 
     await git.rebase(`origin/${base}`);
 
-    const remote = `https://${env.githubUsername}:${config.secrets.githubToken}@github.com/${
-        config.secrets.repoowner
-    }/${config.secrets.repo}`;
     // TODO consider retries on failed pushes?
     await git.push(['--force', remote, branch]);
 
@@ -39,12 +37,9 @@ const handlePr = async (env, pr) => {
     ]);
     const isBehindBase = parseInt(result.trim().split('\t')[0]) !== 0;
 
-    console.log(pr.title, 'behind?', isBehindBase, env.githubUsername);
-
     // if not behind base, not much we can do. We could retry builds potentially, but we can also just
     // wait until there's a new commit on master. Seems better.
     if (isBehindBase) {
-        // TODO PRE LAUNCH uncomment.
         return await rebasePr(env, pr);
     }
 };
