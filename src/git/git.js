@@ -12,10 +12,11 @@ exports.rebase = async branch => git.rebase([branch]);
 exports.checkout = async branch => git.checkout(branch);
 exports.clean = async () => git.clean('fd');
 
-exports.push = async (...options) => git.push(options);
+exports.push = async (...args) => git.push(...args);
 
 exports.addAll = async () => git.add('.');
-exports.commit = async (message, options = {}) => git.commit(message);
+exports.commit = async (message, options = {}) =>
+    git.commit(message, { '--author': `simonbot <${config.secrets.commitEmail}>`, ...options });
 
 exports.raw = async cmd => {
     console.assert(cmd.length > 0 && !cmd[0].trim().startsWith('git'), 'git gets auto included for you.');

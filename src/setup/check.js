@@ -2,6 +2,7 @@ var fs = require('fs');
 var constants = require('../constants');
 var config = require('../config');
 var git = require('../git/git');
+var github = require('../github/github');
 
 exports.check = async () => {
     // check if secrets.json is set up.
@@ -27,6 +28,11 @@ exports.check = async () => {
             'clonedlocation must be a git repository with a remote called origin pointing to the configured repo'
         );
     }
+    // TODO how to check that we can push? try to fetch? And then we want to use the repo and add the token into the remote
 
-    return true;
+    const env = {
+        githubUsername: await github.getUsername(),
+    };
+
+    return env;
 };

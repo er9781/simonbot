@@ -3,6 +3,19 @@ var config = require('../config');
 var c = require('../common');
 var _ = require('lodash');
 
+exports.getUsername = async () => {
+    query = `
+        query {
+            viewer {
+                login
+                name
+            }
+        }
+    `;
+
+    return (await client.query(query)).body.data.viewer.login;
+};
+
 // lol github doesn't like it if you just request the world.
 // they have some checks. 100 comments max which is what we're actually
 // worried abotu blowing. PRs 40 would probably be sufficient but whatever.
@@ -150,7 +163,8 @@ const getUpdatePrs = async pullReqs => prsToTriggered(textTriggersUpdate, pullRe
 
 // get prs which have a triggering emoji which aren't passing ci. We want to rebase those.
 const getPrsToRebase = async pullReqs => {
-    const prs = [...(await getShippedPrs(pullReqs)), ...(await getUpdatePrs(pullReqs))];
+    const pulls = pullReqs || (await getOpenPrs());
+    const prs = [...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))];
     // we want to rebase if the last commit has any failing status.
     // pending statuses are ok because some statuses don't resolve until approvals happen.
     return await _.orderBy(prs, 'updatedAt', 'desc').filterAsync(hasFailingStatus);

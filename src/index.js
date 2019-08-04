@@ -5,8 +5,8 @@ var check = require('./setup/check');
 // check setup.
 check
     .check()
-    .then(() => {
+    .then(env => {
         // start service.
-        poller.fireloop();
+        poller.fireloop(env);
     })
     .catch(err => console.log(err));
