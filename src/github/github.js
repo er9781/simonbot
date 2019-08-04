@@ -31,6 +31,8 @@ const mergePullRequest = async pr => {
         }
     `;
 
+    // worst case if this doesn't work, we'll drop to v3 api.
+
     return await client.mutate(mutation);
 };
 
