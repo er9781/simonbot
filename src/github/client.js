@@ -6,6 +6,13 @@ const v4baseurl = 'https://api.github.com/graphql';
 // data expected to be an object. will be stringified.
 // defaults to github api v4.
 const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) => {
+    // TODO use http.http.
+    // - keep assert on github token
+    // - stringify data to body
+    // - headers for auth
+    // - throw on errors in body
+    // - parse response body to json
+
     console.assert(['GET', 'POST'].includes(method));
     console.assert(config.secrets.githubToken, 'Must have a github token.');
 
@@ -20,9 +27,9 @@ const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) 
             // vnd.github.antiope-preview
             'Content-Type': 'application/json',
             'User-Agent': 'bot',
+            ...headers,
         },
         ...(body ? { 'Content-Length': body.length } : {}),
-        ...headers,
     };
 
     if (method === 'GET' && data) {

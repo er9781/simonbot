@@ -1,5 +1,6 @@
 var github = require('../github/github');
 var fixer = require('../prfixer/fixer');
+var buildkite = require('../buildkite/client');
 
 const delaySeconds = 5;
 
@@ -7,13 +8,18 @@ const mainActions = async env => {
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
-    const sliced = prs; //.slice(0, 1)
-    await fixer.handleAllPrs(env, sliced);
+    const prsToRebase = await github.getPrsToRebase(openPrs);
+    console.log('rebase prs', prsToRebase.map(pr => pr.title));
+    await fixer.handleAllPrsToRebase(env, prsToRebase);
 
     await github.mergePrs(openPrs);
 };
 
 const fireloop = env => {
+    // buildkite.request({ uri: '/builds' }).then(resp => {
+    //     console.log(resp.body.first().jobs);
+    // });
+    // return;
     const startMs = Date.now();
 
     // do main thing

@@ -44,7 +44,7 @@ const handlePr = async (env, pr) => {
     }
 };
 
-exports.handleAllPrs = async (env, prs) => {
+exports.handleAllPrsToRebase = async (env, prs) => {
     // cannot do them all in parallel since we're using only 1 cloned repo.
     for (let pr of prs) {
         try {
