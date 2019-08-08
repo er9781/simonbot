@@ -5,13 +5,20 @@ var c = require('../common');
 const delaySeconds = 5;
 
 const mainActions = async env => {
-    console.log('main loop');
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
-    let { other, failingGitDiff } = await github.getPrsToFixup(openPrs);
+    let { other = [], failingGitDiff = [] } = await github.getPrsToFixup(openPrs);
 
-    if (env.buildkiteIsValid && failingGitDiff) {
+    console.log(
+        'main',
+        'other fixup prs',
+        other.map(pr => pr.title),
+        'failing diff',
+        failingGitDiff.map(pr => pr.title)
+    );
+
+    if (env.buildkiteIsValid && failingGitDiff.length > 0) {
         // prs failing git diff will get the diff applied to them.
         await fixer.handleAllPrsToApplyGitDiff(env, failingGitDiff);
     } else {
@@ -20,7 +27,7 @@ const mainActions = async env => {
         other = c.concat(other, failingGitDiff);
     }
 
-    if (other && other.length > 0) {
+    if (other.length > 0) {
         await fixer.handleAllPrsToRebase(env, other);
     }
 

@@ -24,3 +24,7 @@ it will try to apply diff patches to your pr as needed for generated code you fo
 - optionally add a buildkite access token to enable the buildkite features ([get one here](https://buildkite.com/docs/apis/rest-api#authentication))
 - you'll need a copy of the repository you're tring to operate on colocated on the machine you run this service on. You need to add to secrets.json the location of the cloned repository.
 - you need to configure the target github repo through `repo` and `repowner` in `secrets.json` as well. (this could potentially be read from the remotes info from git, but that's a todo for later)
+
+## Deployment
+I deploy my bot to a small box and just use `systemd` to manage it. I've included a `simonbot.service.example` file for 
+my config file but it'll probably take some mucking around to get it running. Sorry.
