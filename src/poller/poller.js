@@ -1,6 +1,6 @@
 var github = require('../github/github');
 var fixer = require('../prfixer/fixer');
-var buildkite = require('../buildkite/buildkite');
+var c = require('../common');
 
 const delaySeconds = 5;
 
@@ -18,7 +18,7 @@ const mainActions = async env => {
     } else {
         // if we don't have buildkite api, then let's default to just rebasing on
         // master for you. this is a no-op when failingGitDiff is undefined
-        other = [...(other || []), ...(failingGitDiff || [])];
+        other = c.concat(other, failingGitDiff);
     }
 
     if (other && other.length > 0) {
