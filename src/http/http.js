@@ -1,8 +1,12 @@
 var https = require('https');
+var querystring = require('querystring');
 
-exports.request = async ({ method = 'POST', body, headers = {}, url } = {}) => {
+exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {}) => {
     console.assert(['GET', 'POST'].includes(method));
     console.assert(url, 'must have a url');
+
+    const qs = query && querystring.stringify(query);
+    const fullUrl = url + (qs ? `?${qs}` : '');
 
     const options = {
         method,
@@ -15,9 +19,11 @@ exports.request = async ({ method = 'POST', body, headers = {}, url } = {}) => {
     };
 
     return new Promise((resolve, reject) => {
-        const req = https.request(url, options, resp => {
+        const req = https.request(fullUrl, options, resp => {
             // fail on 4xx or 5xx codes. maybe consider more granular errors. Could retry on 5xx but not on 4xx for instance.
             if (resp.statusCode >= 400) {
+                console.log(method);
+                console.log(resp);
                 reject({
                     status: resp.statusCode,
                     message: resp.statusMessage,

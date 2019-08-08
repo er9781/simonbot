@@ -2,6 +2,8 @@ var client = require('./client');
 var config = require('../config');
 var c = require('../common');
 var _ = require('lodash');
+var buildkite = require('../buildkite/buildkite');
+var pullrequest = require('../pullrequest/pullrequest');
 
 exports.getUsername = async () => {
     query = `
@@ -17,6 +19,7 @@ exports.getUsername = async () => {
 };
 
 const mergePullRequest = async pr => {
+    console.log('attempting merge on ', pr.title);
     const mutation = `
         mutation {
             mergePullRequest(input: {
@@ -33,7 +36,8 @@ const mergePullRequest = async pr => {
 
     // worst case if this doesn't work, we'll drop to v3 api.
 
-    return await client.mutate(mutation);
+    // TODO uncomment me.
+    // return await client.mutate(mutation);
 };
 
 // lol github doesn't like it if you just request the world.
@@ -71,6 +75,7 @@ const getPrs = async pullReqs => {
                         updatedAt
                         body
                         title
+                        id
                         mergeable
                         mergeStateStatus
                         # canBeRebased
@@ -129,13 +134,13 @@ const getRefStatuses = async sha => {
 };
 
 const hasFailingStatus = async pr => {
+    // TODO let's cache the statuses on the PR here? and if it's there, just use that. yay mutatbility.
+
     const isFailed = t => t === 'failure';
     // we actually want the last commit with statuses. sometimes the last commit won't trigger ci.
     // why? deps detection? I'm not actually sure.
     let statuses = null;
-    const commits = [...pr.commits.nodes.map(n => n.commit)];
-    commits.reverse();
-    for (let commit of commits) {
+    for (let commit of pullrequest.getCommits(pr)) {
         const list = (await getRefStatuses(commit.oid)).body;
         if (c.notEmpty(list)) {
             statuses = list;
@@ -145,8 +150,10 @@ const hasFailingStatus = async pr => {
     return statuses.map(s => s.state).some(isFailed);
 };
 
-const shippedEmojis = [':shipit:', ':sheep:'];
-const updateMeEmojis = [':fire_engine:', ':man_health_worker:'];
+// github changed recently to actually store more of these as unicode emojis rather
+// than the `:...:` format. so let's support both. sigh
+const shippedEmojis = [':shipit:', ':sheep:', '🐑'];
+const updateMeEmojis = [':fire_engine:', '🚒', ':man_health_worker:', '👨‍⚕'];
 
 const textTriggersEmojiSet = emojiSet => text => emojiSet.some(e => text.includes(e));
 
@@ -166,15 +173,27 @@ const getShippedPrs = async pullReqs => prsToTriggered(textTriggersShippit, pull
 const getUpdatePrs = async pullReqs => prsToTriggered(textTriggersUpdate, pullReqs);
 
 // get prs which have a triggering emoji which aren't passing ci. We want to rebase those.
-const getPrsToRebase = async pullReqs => {
-    const pulls = pullReqs || (await getOpenPrs());
-    const prs = [...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))];
+const getPrsToFixup = async pullReqs => {
+    const pulls = await getOpenPrs(pullReqs);
     // we want to rebase if the last commit has any failing status.
     // pending statuses are ok because some statuses don't resolve until approvals happen.
-    return await _.orderBy(prs, 'updatedAt', 'desc').filterAsync(hasFailingStatus);
+
+    // dedupe by id in case a pr is both shipped and fixuped
+    const prs = _.uniqBy([...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))], pr => pr.id);
+    const failingPrs = await prs.filterAsync(hasFailingStatus);
+
+    // we want to split out ones that are failing generically vs due to gitdiff.
+    // so we annotate each pr with the reason it failed.
+    const isFailure = await failingPrs.mapAsync(buildkite.isFailingGitDiff);
+    failingPrs.forEach((pr, idx) => {
+        pr.failureReason = isFailure[idx];
+    });
+
+    return _.groupBy(_.orderBy(failingPrs, 'updatedAt', 'desc'), 'failureReason');
 };
 
 const getPrsToMerge = async pullReqs => {
+    // TODO change to filter downto only successful statuses
     return await (await getShippedPrs(pullReqs)).removeAsync(hasFailingStatus);
 };
 
@@ -193,5 +212,5 @@ const mergePrs = async pullReqs => {
 exports.getOpenPrs = getOpenPrs;
 exports.getShippedPrs = getShippedPrs;
 exports.getUpdatePrs = getUpdatePrs;
-exports.getPrsToRebase = getPrsToRebase;
+exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;

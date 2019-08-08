@@ -19,6 +19,10 @@ Array.prototype.filterAsync = function(f) {
     );
 };
 
+Array.prototype.mapAsync = function(f) {
+    return Promise.all(this.map((el, idx, arr) => f(el, idx, arr)));
+};
+
 Array.prototype.removeAsync = function(f) {
     return (
         Promise.all(this.map((el, idx, arr) => f(el, idx, arr)))

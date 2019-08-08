@@ -3,6 +3,7 @@ var constants = require('../constants');
 var config = require('../config');
 var git = require('../git/git');
 var github = require('../github/github');
+var buildkite = require('../buildkite/buildkite');
 var _ = require('lodash');
 
 exports.getGitRemote = env =>
@@ -47,6 +48,17 @@ exports.setup = async () => {
         env.githubUsername = await github.getUsername();
     } catch (err) {
         throw new Error('failed to access github api. riperino.');
+    }
+
+    try {
+        const isValid = await buildkite.checkAuth();
+        if (!isValid) {
+            console.warn('invalid buildkite token, or missing scopes. must have all of', ...buildkite.requiredScopes);
+        } else {
+            env.buildkiteIsValid = true;
+        }
+    } catch (err) {
+        console.warn('failed to access buildkite api. Will not use any buildkite dependent features');
     }
 
     return env;

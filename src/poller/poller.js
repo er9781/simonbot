@@ -1,6 +1,6 @@
 var github = require('../github/github');
 var fixer = require('../prfixer/fixer');
-var buildkite = require('../buildkite/client');
+var buildkite = require('../buildkite/buildkite');
 
 const delaySeconds = 5;
 
@@ -8,22 +8,33 @@ const mainActions = async env => {
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
-    const prsToRebase = await github.getPrsToRebase(openPrs);
-    console.log('rebase prs', prsToRebase.map(pr => pr.title));
-    await fixer.handleAllPrsToRebase(env, prsToRebase);
+    let { other, failingGitDiff } = await github.getPrsToFixup(openPrs);
 
+    console.log('main loop', other && other.length, failingGitDiff && failingGitDiff.length);
+
+    if (env.buildkiteIsValid && failingGitDiff) {
+        // prs failing git diff will get the diff applied to them.
+        await fixer.handleAllPrsToApplyGitDiff(env, failingGitDiff);
+    } else {
+        // if we don't have buildkite api, then let's default to just rebasing on
+        // master for you. this is a no-op when failingGitDiff is undefined
+        other = [...(other || []), ...(failingGitDiff || [])];
+    }
+
+    if (other && other.length > 0) {
+        await fixer.handleAllPrsToRebase(env, other);
+    }
+
+    // TODO make this next thing work.
     await github.mergePrs(openPrs);
 };
 
 const fireloop = env => {
-    // buildkite.request({ uri: '/builds' }).then(resp => {
-    //     console.log(resp.body.first().jobs);
-    // });
-    // return;
+    console.assert(env);
     const startMs = Date.now();
 
     // do main thing
-    mainActions()
+    mainActions(env)
         .catch(err => {
             console.log(err);
             // TODO actual tracking?

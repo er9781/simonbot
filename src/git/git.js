@@ -9,6 +9,7 @@ exports.getRemotes = async () => git.getRemotes(true);
 exports.fetch = async (remote, branch) => git.fetch(remote, branch);
 
 exports.rebase = async branch => git.rebase([branch]);
+exports.reset = async (...args) => git.reset(...args);
 exports.checkout = async branch => git.checkout(branch);
 exports.clean = async () => git.clean('fd');
 
