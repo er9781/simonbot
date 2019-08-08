@@ -35,15 +35,31 @@ const mergePullRequest = async pr => {
     `;
 
     // worst case if this doesn't work, we'll drop to v3 api.
+    // https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button
 
-    // TODO uncomment me.
-    // return await client.mutate(mutation);
+    try {
+        // return await client.mutate(mutation);
+
+        // RIP need to be a github app to run this. Maybe need to upgrade.
+        const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
+        console.log(uri);
+        return await client.v3request({
+            method: 'POST',
+            uri,
+            data: {
+                merge_method: 'rebase',
+            },
+        });
+    } catch (err) {
+        console.log(err);
+    }
 };
 
 // lol github doesn't like it if you just request the world.
 // they have some checks. 100 comments max which is what we're actually
 // worried abotu blowing. PRs 40 would probably be sufficient but whatever.
 // if you're active in non-samsara repositories, then this might fail for you. :shrug:
+// there's just no way I'm dealing with pagination for the time being.
 const maxNodes = 100;
 
 // if pullReqs is passed in, this is the identity function.
@@ -75,6 +91,7 @@ const getPrs = async pullReqs => {
                         updatedAt
                         body
                         title
+                        number
                         id
                         mergeable
                         mergeStateStatus
@@ -193,20 +210,18 @@ const getPrsToFixup = async pullReqs => {
 };
 
 const getPrsToMerge = async pullReqs => {
-    // TODO change to filter downto only successful statuses
-    return await (await getShippedPrs(pullReqs)).removeAsync(hasFailingStatus);
+    // CLEAN I thiiiink means it's all green. anyway, without reviews it says BLOCKED
+    return (await getShippedPrs(pullReqs)).filter(pr => pr.mergeStateStatus === 'CLEAN');
 };
 
 const mergePrs = async pullReqs => {
-    return await Promise.all(
-        (await getPrsToMerge(pullReqs)).map(async pr => {
-            try {
-                mergePullRequest(pr);
-            } catch (err) {
-                // ignore errors in the merge to move on to the next one. Will pick up in next main loop
-            }
-        })
-    );
+    return (await getPrsToMerge(pullReqs)).mapAsync(async pr => {
+        try {
+            return await mergePullRequest(pr);
+        } catch (err) {
+            // ignore errors in the merge to move on to the next one. Will pick up in next main loop
+        }
+    });
 };
 
 exports.getOpenPrs = getOpenPrs;

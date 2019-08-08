@@ -10,8 +10,6 @@ const mainActions = async env => {
 
     let { other, failingGitDiff } = await github.getPrsToFixup(openPrs);
 
-    console.log('main loop', other && other.length, failingGitDiff && failingGitDiff.length);
-
     if (env.buildkiteIsValid && failingGitDiff) {
         // prs failing git diff will get the diff applied to them.
         await fixer.handleAllPrsToApplyGitDiff(env, failingGitDiff);
@@ -26,7 +24,8 @@ const mainActions = async env => {
     }
 
     // TODO make this next thing work.
-    await github.mergePrs(openPrs);
+    // needs github app upgrade.
+    // await github.mergePrs(openPrs);
 };
 
 const fireloop = env => {
