@@ -79,7 +79,6 @@ const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) 
 const v3baseurl = 'https://api.github.com';
 // default to get, allow overrides
 const v3request = async ({ uri, headers, ...rest }) => {
-    console.log('v3 request', v3baseurl + uri);
     return await request({
         url: v3baseurl + uri,
         method: 'GET',

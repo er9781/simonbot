@@ -5,6 +5,7 @@ var c = require('../common');
 const delaySeconds = 5;
 
 const mainActions = async env => {
+    console.log('main loop');
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
