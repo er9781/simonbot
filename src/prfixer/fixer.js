@@ -11,8 +11,8 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const branch = pullrequest.getBranch(pr);
 
     // await git.reset('hard');
-    await git.fetch(remote, base);
-    await git.fetch(remote, branch);
+    await git.fetch(remote, base, ['--force']);
+    await git.fetch(remote, branch, ['--force']);
 
     await git.checkout(branch);
     await git.clean();

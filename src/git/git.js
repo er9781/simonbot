@@ -6,7 +6,7 @@ exports.checkIsRepo = async () => git.checkIsRepo();
 exports.getRemotes = async () => git.getRemotes(true);
 
 // fetches a single branch
-exports.fetch = async (remote, branch) => git.fetch(remote, branch);
+exports.fetch = async (remote, branch, options) => git.fetch(remote, branch, options);
 
 exports.rebase = async branch => git.rebase([branch]);
 exports.reset = async (...args) => git.reset(...args);
