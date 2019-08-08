@@ -1,0 +1,16 @@
+[Unit]
+Description=Simonbot service for pull request workflows
+After=network.target
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=bitnami
+WorkingDirectory=/home/bitnami/co/simonbot
+ExecStart=/opt/bitnami/nodejs/bin/node /home/bitnami/co/simonbot/src/
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=simonbot
+
+[Install]
+WantedBy=multi-user.target
