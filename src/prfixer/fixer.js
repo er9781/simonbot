@@ -10,7 +10,7 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const base = pullrequest.getBaseBranch(pr);
     const branch = pullrequest.getBranch(pr);
 
-    // await git.reset('hard');
+    // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
     await git.fetch(remote, base, ['--force']);
     await git.fetch(remote, branch, ['--force']);
 

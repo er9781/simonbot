@@ -38,6 +38,11 @@ const mainActions = async env => {
 
 const fireloop = env => {
     console.assert(env);
+
+    // scratchpad.
+    github.test().then();
+    return;
+
     const startMs = Date.now();
 
     // do main thing

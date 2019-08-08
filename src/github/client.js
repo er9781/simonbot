@@ -96,3 +96,16 @@ const query = query => request({ data: { query } });
 exports.query = query;
 exports.mutate = mutation => request({ data: { query: mutation } });
 exports.v3request = v3request;
+
+exports.appRequest = ({ jwt, headers, method = 'GET', ...rest }) => {
+    console.assert(jwt);
+    return request({
+        headers: {
+            Accept: 'application/vnd.github.machine-man-preview+json',
+            Authorization: `Bearer ${jwt}`,
+            ...headers,
+        },
+        method,
+        ...rest,
+    });
+};

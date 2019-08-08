@@ -20,6 +20,7 @@ exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {
 
     return new Promise((resolve, reject) => {
         const req = https.request(fullUrl, options, resp => {
+            console.log('hello', fullUrl, resp.statusCode, typeof resp.statusCode);
             // fail on 4xx or 5xx codes. maybe consider more granular errors. Could retry on 5xx but not on 4xx for instance.
             if (resp.statusCode >= 400) {
                 console.log(method);

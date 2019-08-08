@@ -4,6 +4,8 @@ var c = require('../common');
 var _ = require('lodash');
 var buildkite = require('../buildkite/buildkite');
 var pullrequest = require('../pullrequest/pullrequest');
+var fs = require('fs');
+var jwt = require('jsonwebtoken');
 
 exports.getUsername = async () => {
     query = `
@@ -229,3 +231,43 @@ exports.getShippedPrs = getShippedPrs;
 exports.getUpdatePrs = getUpdatePrs;
 exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;
+
+const getJwt = () => {
+    const fileOptions = { encoding: 'utf-8' };
+    const privateKey = fs.readFileSync('privatekey.pem', fileOptions);
+
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        iat: now,
+        // can we make it longer than 10min exp? do we care?
+        exp: now + 10 * 60,
+        iss: 37998,
+    };
+    const options = { algorithm: 'RS256' };
+
+    return jwt.sign(payload, privateKey, options);
+};
+
+exports.test = async () => {
+    console.log('lets try to auth');
+
+    const jwt = getJwt();
+    // console.log(jwt);
+
+    try {
+        const installation = await client.appRequest({ jwt, url: 'https://api.github.com/app/installations' });
+        const installationId = installation.body.first().id;
+
+        // now get installtion auth.
+        const {
+            body: { token: installationToken },
+        } = await client.appRequest({
+            jwt,
+            url: `https://api.github.com/app/installations/${installationId}/access_tokens`,
+            method: 'POST',
+        });
+        console.log(installationToken);
+    } catch (err) {
+        console.log(err);
+    }
+};
