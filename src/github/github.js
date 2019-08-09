@@ -257,3 +257,29 @@ exports.test = async env => {
         console.log(err);
     }
 };
+
+const appendToBody = async (pr, text) => {
+    newBody = pr.body + '\n' + text;
+    return await client.v3request({
+        uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}`,
+        method: 'PATCH',
+        data: { body: newBody },
+    });
+};
+
+exports.logRebase = async pr => {
+    return appendToBody(pr, '<!-- simonbot rebase -->');
+};
+
+exports.getBotState = pr => {
+    const stateLines = pr.body.split('\n').filter(line => line.startsWith('<!-- simonbot'));
+    const events = stateLines.map(line =>
+        line
+            .slice('<!-- simonbot'.length)
+            .trim()
+            .split(' ')
+            .first()
+    );
+
+    return { numRebases: events.filter(e => e === 'rebase').length };
+};

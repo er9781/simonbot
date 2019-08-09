@@ -2,7 +2,7 @@ var https = require('https');
 var querystring = require('querystring');
 
 exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {}) => {
-    console.assert(['GET', 'POST', 'PUT'].includes(method));
+    console.assert(['GET', 'POST', 'PUT', 'PATCH'].includes(method));
     console.assert(url, 'must have a url');
 
     const qs = query && querystring.stringify(query);

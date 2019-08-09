@@ -3,16 +3,23 @@ var setup = require('../setup/setup');
 var pullrequest = require('../pullrequest/pullrequest');
 var buildkite = require('../buildkite/buildkite');
 var fs = require('fs');
+var github = require('../github/github');
+
+const fetchBranches = async (env, pr) => {
+    const remote = setup.getGitRemote(env);
+    const base = pullrequest.getBaseBranch(pr);
+    const branch = pullrequest.getBranch(pr);
+    await git.fetch(remote, base, ['--force']);
+    await git.fetch(remote, branch, ['--force']);
+};
 
 // just wraps common actions on a git branch (fetch, checkout, push, etc)
 const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const remote = setup.getGitRemote(env);
-    const base = pullrequest.getBaseBranch(pr);
     const branch = pullrequest.getBranch(pr);
 
     // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
-    await git.fetch(remote, base, ['--force']);
-    await git.fetch(remote, branch, ['--force']);
+    await fetchBranches(env, pr);
 
     await git.checkout(branch);
     await git.clean();
@@ -26,13 +33,27 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
 
 const rebasePr = async (env, pr) => {
     const base = pullrequest.getBaseBranch(pr);
-    return gitBranchAction(env, pr, async () => await git.rebase(`origin/${base}`));
+    await gitBranchAction(env, pr, async () => await git.rebase(`origin/${base}`));
+    // mark rebase as performed
+    return await github.logRebase(pr);
 };
 
 const handleRebasePr = async (env, pr) => {
     if (pr.mergeable === 'CONFLICTING') {
         // TODO what to do if there are merge conflicts? email me?
+        return;
     }
+
+    // check retry count.
+    const state = await github.getBotState(pr);
+    if (state.numRebases >= 10) {
+        console.log(`max rebases hit on ${pr.title}`);
+        return;
+    }
+
+    // fetch the branch first.
+    await fetchBranches(env, pr);
+
     const result = await git.raw([
         'rev-list',
         '--left-right',
