@@ -236,7 +236,7 @@ exports.test = async env => {
 
     const number = body.first().number;
 
-    const uri = `/repos/er9781/simonbot/pulls/${number}/merge`;
+    const uri = `/repos/er9781/simonbot/pulls/${2}/merge`;
     console.log(uri);
     try {
         const tmp = await client.v3request({

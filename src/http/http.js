@@ -9,6 +9,8 @@ exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {
     const fullUrl = url + (qs ? `?${qs}` : '');
 
     const options = {
+        // 2 min probably sufficient
+        timeout: 120000,
         method,
         headers: {
             'Content-Type': 'application/json',
