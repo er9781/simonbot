@@ -18,10 +18,15 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const remote = setup.getGitRemote(env);
     const branch = pullrequest.getBranch(pr);
 
+    console.log(pr.title, 'diff checks');
+
     // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
     await fetchBranches(env, pr);
 
+    console.log('fetched');
+
     await git.checkout(branch);
+    console.log('checked out');
     await git.clean();
     await git.reset('hard');
 
