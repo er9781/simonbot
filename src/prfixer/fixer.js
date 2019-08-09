@@ -22,7 +22,6 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
 
     // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
     await fetchBranches(env, pr);
-
     console.log('fetched');
 
     await git.checkout(branch);
