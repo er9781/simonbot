@@ -61,5 +61,8 @@ exports.setup = async () => {
         console.warn('failed to access buildkite api. Will not use any buildkite dependent features');
     }
 
+    // TODO read from somewhere else?
+    env.privateKey = fs.readFileSync('privatekey.pem', { encoding: 'utf-8' });
+
     return env;
 };

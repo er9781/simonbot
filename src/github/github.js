@@ -4,8 +4,6 @@ var c = require('../common');
 var _ = require('lodash');
 var buildkite = require('../buildkite/buildkite');
 var pullrequest = require('../pullrequest/pullrequest');
-var fs = require('fs');
-var jwt = require('jsonwebtoken');
 
 exports.getUsername = async () => {
     query = `
@@ -232,41 +230,31 @@ exports.getUpdatePrs = getUpdatePrs;
 exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;
 
-const getJwt = () => {
-    const fileOptions = { encoding: 'utf-8' };
-    const privateKey = fs.readFileSync('privatekey.pem', fileOptions);
+exports.test = async env => {
+    const appClient = await client.getAppClient(env);
 
-    const now = Math.floor(Date.now() / 1000);
-    const payload = {
-        iat: now,
-        // can we make it longer than 10min exp? do we care?
-        exp: now + 10 * 60,
-        iss: 37998,
-    };
-    const options = { algorithm: 'RS256' };
+    const { body } = await appClient.v3request({ uri: '/repos/er9781/simonbot/pulls' });
 
-    return jwt.sign(payload, privateKey, options);
-};
+    const number = body.first().number;
+    console.log(body.first());
 
-exports.test = async () => {
-    console.log('lets try to auth');
-
-    const jwt = getJwt();
-    // console.log(jwt);
-
+    const uri = `/repos/er9781/simonbot/pulls/${number}/merge`;
+    console.log(uri);
     try {
-        const installation = await client.appRequest({ jwt, url: 'https://api.github.com/app/installations' });
-        const installationId = installation.body.first().id;
-
-        // now get installtion auth.
-        const {
-            body: { token: installationToken },
-        } = await client.appRequest({
-            jwt,
-            url: `https://api.github.com/app/installations/${installationId}/access_tokens`,
+        const tmp = await appClient.v3request({
             method: 'POST',
+            uri,
+            headers: {
+                Accept: 'application/vnd.github.v3+json',
+            },
+            data: {
+                merge_method: 'merge',
+                commit_title: 'things',
+                commit_message: 'things again',
+                sha: body.first().head.sha,
+            },
         });
-        console.log(installationToken);
+        console.log(tmp);
     } catch (err) {
         console.log(err);
     }

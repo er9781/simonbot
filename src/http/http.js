@@ -13,18 +13,17 @@ exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {
         headers: {
             'Content-Type': 'application/json',
             'User-Agent': 'bot',
+            // TODO this is probably wrong for utf-16 strings. should fix it.
+            // https://stackoverflow.com/questions/5515869/string-length-in-bytes-in-javascript
+            ...(body ? { 'Content-Length': body.length } : {}),
             ...headers,
         },
-        ...(body ? { 'Content-Length': body.length } : {}),
     };
 
     return new Promise((resolve, reject) => {
         const req = https.request(fullUrl, options, resp => {
-            console.log('hello', fullUrl, resp.statusCode, typeof resp.statusCode);
             // fail on 4xx or 5xx codes. maybe consider more granular errors. Could retry on 5xx but not on 4xx for instance.
             if (resp.statusCode >= 400) {
-                console.log(method);
-                console.log(resp);
                 reject({
                     status: resp.statusCode,
                     message: resp.statusMessage,

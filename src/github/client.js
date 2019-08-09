@@ -1,18 +1,13 @@
 var config = require('../config');
 var https = require('https');
+var jwt = require('jsonwebtoken');
+var http = require('../http/http');
 
 const v4baseurl = 'https://api.github.com/graphql';
 
 // data expected to be an object. will be stringified.
 // defaults to github api v4.
-const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) => {
-    // TODO use http.http.
-    // - keep assert on github token
-    // - stringify data to body
-    // - headers for auth
-    // - throw on errors in body
-    // - parse response body to json
-
+const request = async ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) => {
     console.assert(['GET', 'POST'].includes(method));
     console.assert(config.secrets.githubToken, 'Must have a github token.');
 
@@ -27,61 +22,31 @@ const request = ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) 
             // vnd.github.antiope-preview
             'Content-Type': 'application/json',
             'User-Agent': 'bot',
+            ...(body ? { 'Content-Length': body.length } : {}),
             ...headers,
         },
-        ...(body ? { 'Content-Length': body.length } : {}),
+        url,
+        body,
+        ...(method === 'GET' && data ? { query: data } : {}),
     };
 
-    if (method === 'GET' && data) {
-        // TODO append query string with data on to the url.
-        // url = some other stuff
+    const resp = await http.request(options);
+
+    const respBody = JSON.parse(resp.body);
+    // graphql api returns errros sometimes
+    if (respBody.errors) {
+        throw new Error({ error: respBody.errors });
     }
 
-    return new Promise((resolve, reject) => {
-        const req = https.request(url, options, resp => {
-            // fail on 4xx or 5xx codes. maybe consider more granular errors. Could retry on 5xx but not on 4xx for instance.
-            if (resp.statusCode >= 400) {
-                reject({
-                    status: resp.statusCode,
-                    message: resp.statusMessage,
-                });
-            }
-
-            // TODO do we want automatic retries?
-
-            let body = '';
-            resp.on('data', data => {
-                body += data;
-            });
-
-            resp.on('end', () => {
-                let out = JSON.parse(body);
-                if (out.errors) {
-                    reject({ error: out.errors });
-                }
-
-                // success yay. let's return status + body.
-                resolve({ status: resp.statusCode, body: out });
-            });
-        });
-
-        req.on('error', err => {
-            reject({ error: 'request failed' });
-        });
-
-        if (method === 'POST' && body) {
-            req.write(body);
-        }
-        req.end();
-    });
+    return { status: resp.status, body: JSON.parse(resp.body) };
 };
 
 const v3baseurl = 'https://api.github.com';
 // default to get, allow overrides
-const v3request = async ({ uri, headers, ...rest }) => {
+const v3request = async ({ uri, method = 'GET', headers, ...rest }) => {
     return await request({
         url: v3baseurl + uri,
-        method: 'GET',
+        method,
         headers: {
             // required to get v3 of the api. hmmm.
             Accept: 'application/vnd.github.v3+json',
@@ -91,21 +56,76 @@ const v3request = async ({ uri, headers, ...rest }) => {
     });
 };
 
+exports.v3request = v3request;
+
 const query = query => request({ data: { query } });
 
 exports.query = query;
 exports.mutate = mutation => request({ data: { query: mutation } });
-exports.v3request = v3request;
 
-exports.appRequest = ({ jwt, headers, method = 'GET', ...rest }) => {
-    console.assert(jwt);
-    return request({
+const appRequest = async ({ token, headers, method = 'GET', ...rest }, requestFn = request) => {
+    console.assert(token);
+    return requestFn({
         headers: {
             Accept: 'application/vnd.github.machine-man-preview+json',
-            Authorization: `Bearer ${jwt}`,
+            Authorization: `Bearer ${token}`,
             ...headers,
         },
         method,
         ...rest,
     });
+};
+
+const getJwt = env => {
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        iat: now,
+        // can we make it longer than 10min exp? do we care?
+        exp: now + 10 * 60,
+        iss: config.secrets.githubAppId,
+    };
+
+    return jwt.sign(payload, env.privateKey, { algorithm: 'RS256' });
+};
+
+const getFreshInstallationToken = async env => {
+    const jwt = getJwt(env);
+
+    const installations = await appRequest({ token: jwt, url: 'https://api.github.com/app/installations' });
+
+    // TODO filter down based on config.
+    const installationId = installations.body.first().id;
+
+    // now get installation auth.
+    const { body } = await appRequest({
+        token: jwt,
+        url: `https://api.github.com/app/installations/${installationId}/access_tokens`,
+        method: 'POST',
+    });
+    return {
+        token: body.token,
+        // just set our expiry 5s before actual expiry to avoid
+        // chances of failing this check.
+        expiresAt: new Date(body.expires_at).getTime() - 5000,
+    };
+};
+
+exports.getAppClient = async env => {
+    let token = await getFreshInstallationToken(env);
+
+    const maybeRefreshToken = async () => {
+        if (token.expiresAt <= Date.now()) {
+            token = await getFreshInstallationToken(env);
+        }
+    };
+
+    const req = async (args = {}, requestFn = request) => {
+        await maybeRefreshToken();
+        return appRequest({ token: token.token, ...args }, requestFn);
+    };
+
+    return {
+        request: async args => req(args),
+        v3request: async args => req(args, v3request),
+    };
 };
