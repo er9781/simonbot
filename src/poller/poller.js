@@ -31,15 +31,14 @@ const mainActions = async env => {
         await fixer.handleAllPrsToRebase(env, other);
     }
 
-    // TODO make this next thing work.
     // needs github app upgrade.
-    // await github.mergePrs(openPrs);
+    await github.mergePrs(openPrs);
 };
 
 const fireloop = env => {
     // scratchpad.
-    github.test(env).then();
-    return;
+    // github.test(env).then();
+    // return;
 
     console.assert(env);
 

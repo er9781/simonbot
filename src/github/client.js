@@ -8,10 +8,9 @@ const v4baseurl = 'https://api.github.com/graphql';
 // data expected to be an object. will be stringified.
 // defaults to github api v4.
 const request = async ({ method = 'POST', data, headers = {}, url = v4baseurl } = {}) => {
-    console.assert(['GET', 'POST'].includes(method));
     console.assert(config.secrets.githubToken, 'Must have a github token.');
 
-    body = method === 'POST' && typeof data !== 'undefined' && JSON.stringify(data);
+    body = method !== 'GET' && typeof data !== 'undefined' && JSON.stringify(data);
     const options = {
         method,
         headers: {

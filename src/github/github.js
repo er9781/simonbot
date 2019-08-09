@@ -20,19 +20,19 @@ exports.getUsername = async () => {
 
 const mergePullRequest = async pr => {
     console.log('attempting merge on ', pr.title);
-    const mutation = `
-        mutation {
-            mergePullRequest(input: {
-                pullRequestId: ${pr.id}
-            }) {
-                pullRequest {
-                    title
-                    merged
-                    closed
-                }
-            }
-        }
-    `;
+    // const mutation = `
+    //     mutation {
+    //         mergePullRequest(input: {
+    //             pullRequestId: ${pr.id}
+    //         }) {
+    //             pullRequest {
+    //                 title
+    //                 merged
+    //                 closed
+    //             }
+    //         }
+    //     }
+    // `;
 
     // worst case if this doesn't work, we'll drop to v3 api.
     // https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button
@@ -40,11 +40,10 @@ const mergePullRequest = async pr => {
     try {
         // return await client.mutate(mutation);
 
-        // RIP need to be a github app to run this. Maybe need to upgrade.
+        // v4 of the api doesn't support rebase flows. drop to v3 for this.
         const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
-        console.log(uri);
         return await client.v3request({
-            method: 'POST',
+            method: 'PUT',
             uri,
             data: {
                 merge_method: 'rebase',
@@ -236,22 +235,21 @@ exports.test = async env => {
     const { body } = await appClient.v3request({ uri: '/repos/er9781/simonbot/pulls' });
 
     const number = body.first().number;
-    console.log(body.first());
 
     const uri = `/repos/er9781/simonbot/pulls/${number}/merge`;
     console.log(uri);
     try {
-        const tmp = await appClient.v3request({
-            method: 'POST',
+        const tmp = await client.v3request({
+            method: 'PUT',
             uri,
             headers: {
-                Accept: 'application/vnd.github.v3+json',
+                // Accept: 'application/vnd.github.v3+json',
             },
             data: {
-                merge_method: 'merge',
-                commit_title: 'things',
-                commit_message: 'things again',
-                sha: body.first().head.sha,
+                merge_method: 'rebase',
+                // commit_title: 'things',
+                // commit_message: 'things again',
+                // sha: body.first().head.sha,
             },
         });
         console.log(tmp);
