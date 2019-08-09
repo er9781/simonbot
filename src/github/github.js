@@ -19,7 +19,6 @@ exports.getUsername = async () => {
 };
 
 const mergePullRequest = async pr => {
-    console.log('attempting merge on ', pr.title);
     // const mutation = `
     //     mutation {
     //         mergePullRequest(input: {
@@ -40,6 +39,7 @@ const mergePullRequest = async pr => {
     try {
         // return await client.mutate(mutation);
 
+        console.log('attempting merge on ', pr.title);
         // v4 of the api doesn't support rebase flows. drop to v3 for this.
         const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
         return await client.v3request({

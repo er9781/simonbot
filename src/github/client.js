@@ -21,7 +21,6 @@ const request = async ({ method = 'POST', data, headers = {}, url = v4baseurl } 
             // vnd.github.antiope-preview
             'Content-Type': 'application/json',
             'User-Agent': 'bot',
-            ...(body ? { 'Content-Length': body.length } : {}),
             ...headers,
         },
         url,

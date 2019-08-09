@@ -17,7 +17,7 @@ exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {
             'User-Agent': 'bot',
             // TODO this is probably wrong for utf-16 strings. should fix it.
             // https://stackoverflow.com/questions/5515869/string-length-in-bytes-in-javascript
-            ...(body ? { 'Content-Length': body.length } : {}),
+            // ...(body ? { 'Content-Length': body.length.toString() } : {}),
             ...headers,
         },
     };
@@ -49,7 +49,7 @@ exports.request = async ({ method = 'POST', body, headers = {}, url, query } = {
             reject({ error: 'request failed' });
         });
 
-        if (method === 'POST' && body) {
+        if (method !== 'GET' && body) {
             req.write(body);
         }
         req.end();
