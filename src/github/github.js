@@ -69,9 +69,10 @@ const getPrs = async pullReqs => {
     }
 
     // query for open PRs by the viewer (access token based)
-    const query = `
+
+    const getQuery = rootQuery => `
         query { 
-            viewer { 
+            ${rootQuery} {
                 login 
                 name 
                 pullRequests(last: ${30}, states:OPEN) {
@@ -132,8 +133,16 @@ const getPrs = async pullReqs => {
         }
     `;
 
-    const resp = await client.query(query);
-    return resp.body.data.viewer.pullRequests.nodes;
+    const allUsers = ['viewer', ...config.extraUsers.map(user => `user(login: ${user})`)];
+
+    const prSets = await allUsers.mapAsync(async user => {
+        const data = (await client.query(getQuery(user))).body.data;
+        // different response struct based on viewer or user query.
+        const prs = (data.viewer && data.viewer.pullRequests.nodes) || data.user.pullRequests.nodes;
+        return prs;
+    });
+
+    return prSets.flat();
 };
 
 // prs that are open that are in the repo the app is configured for.
@@ -228,35 +237,6 @@ exports.getShippedPrs = getShippedPrs;
 exports.getUpdatePrs = getUpdatePrs;
 exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;
-
-exports.test = async env => {
-    const appClient = await client.getAppClient(env);
-
-    const { body } = await appClient.v3request({ uri: '/repos/er9781/simonbot/pulls' });
-
-    const number = body.first().number;
-
-    const uri = `/repos/er9781/simonbot/pulls/${2}/merge`;
-    console.log(uri);
-    try {
-        const tmp = await client.v3request({
-            method: 'PUT',
-            uri,
-            headers: {
-                // Accept: 'application/vnd.github.v3+json',
-            },
-            data: {
-                merge_method: 'rebase',
-                // commit_title: 'things',
-                // commit_message: 'things again',
-                // sha: body.first().head.sha,
-            },
-        });
-        console.log(tmp);
-    } catch (err) {
-        console.log(err);
-    }
-};
 
 const appendToBody = async (pr, text) => {
     newBody = pr.body + '\n' + text;
