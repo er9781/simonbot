@@ -9,8 +9,8 @@ const fetchBranches = async (env, pr) => {
     const remote = setup.getGitRemote(env);
     const base = pullrequest.getBaseBranch(pr);
     const branch = pullrequest.getBranch(pr);
-    await git.fetch(remote, base, ['--force']);
-    await git.fetch(remote, branch, ['--force']);
+    await git.fetchForce(remote, base);
+    await git.fetchForce(remote, branch);
 };
 
 // just wraps common actions on a git branch (fetch, checkout, push, etc)

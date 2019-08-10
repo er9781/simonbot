@@ -8,12 +8,25 @@ exports.getRemotes = async () => git.getRemotes(true);
 // fetches a single branch
 exports.fetch = async (remote, branch, options) => {
     try {
-        await git.fetch(remote, `${branch}:${branch}`, options);
+        return await git.fetch(remote, `${branch}:${branch}`, options);
     } catch (err) {
         console.log(err);
     }
     try {
         return await git.fetch(remote, branch, options);
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+exports.fetchForce = async (remote, branch) => {
+    try {
+        return await git.raw(['fetch', '--force', remote, `${branch}:${branch}`]);
+    } catch (err) {
+        console.log(err);
+    }
+    try {
+        return await git.raw(['fetch', '--force', remote, branch]);
     } catch (err) {
         console.log(err);
     }
