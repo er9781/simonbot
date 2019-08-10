@@ -6,9 +6,9 @@ var fs = require('fs');
 var github = require('../github/github');
 
 const fetchBranches = async (env, pr) => {
-    const remote = setup.getGitRemote(env);
-    const base = pullrequest.getBaseBranch(pr);
-    const branch = pullrequest.getBranch(pr);
+    // const remote = setup.getGitRemote(env);
+    // const base = pullrequest.getBaseBranch(pr);
+    // const branch = pullrequest.getBranch(pr);
     await git.raw(['fetch', 'origin', '--force']);
     // await git.fetchForce(remote, base);
     // await git.fetchForce(remote, branch);
@@ -29,7 +29,7 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     await git.raw(['checkout', branch, '--force']);
     console.log('checked out');
     await git.clean();
-    // reset hard to
+    // reset hard to the remote ref.
     await git.raw(['reset', '--hard', `origin/${branch}`]);
     console.log('reset');
 
