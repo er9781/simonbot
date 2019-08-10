@@ -9,8 +9,9 @@ const fetchBranches = async (env, pr) => {
     const remote = setup.getGitRemote(env);
     const base = pullrequest.getBaseBranch(pr);
     const branch = pullrequest.getBranch(pr);
-    await git.fetchForce(remote, base);
-    await git.fetchForce(remote, branch);
+    await git.raw(['fetch', 'origin', '--force']);
+    // await git.fetchForce(remote, base);
+    // await git.fetchForce(remote, branch);
 };
 
 // just wraps common actions on a git branch (fetch, checkout, push, etc)
@@ -24,7 +25,8 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     await fetchBranches(env, pr);
     console.log('fetched');
 
-    await git.checkout(branch);
+    // await git.checkout(branch);
+    await git.raw(['checkout', branch, '--force']);
     console.log('checked out');
     await git.clean();
     // reset hard to
