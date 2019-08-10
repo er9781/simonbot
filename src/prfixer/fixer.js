@@ -27,7 +27,9 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     await git.checkout(branch);
     console.log('checked out');
     await git.clean();
-    await git.reset('hard');
+    // reset hard to
+    await git.raw(['reset', '--hard', `origin/${branch}`]);
+    console.log('reset');
 
     await mainAction();
 
