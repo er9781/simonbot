@@ -6,10 +6,13 @@ var fs = require('fs');
 var github = require('../github/github');
 
 const fetchBranches = async (env, pr) => {
+    // the stuff below is an attempt at an optimization where we'd
+    // only fetch the branches we need, but that seems silly and was
+    // not working properly. Just fetch the world.
+    await git.raw(['fetch', 'origin', '--force']);
     // const remote = setup.getGitRemote(env);
     // const base = pullrequest.getBaseBranch(pr);
     // const branch = pullrequest.getBranch(pr);
-    await git.raw(['fetch', 'origin', '--force']);
     // await git.fetchForce(remote, base);
     // await git.fetchForce(remote, branch);
 };
@@ -18,25 +21,24 @@ const fetchBranches = async (env, pr) => {
 const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const remote = setup.getGitRemote(env);
     const branch = pullrequest.getBranch(pr);
-
-    console.log(pr.title, 'diff checks');
+    console.log('git action on', pr.title, 'branch', branch);
 
     // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
     await fetchBranches(env, pr);
-    console.log('fetched');
+    console.log('fetch success');
 
     // await git.checkout(branch);
     await git.raw(['checkout', branch, '--force']);
-    console.log('checked out');
+    console.log('checkout success');
     await git.clean();
-    // reset hard to the remote ref.
+    // reset hard to the remote ref no matter what.
     await git.raw(['reset', '--hard', `origin/${branch}`]);
-    console.log('reset');
+    console.log('reset success');
 
     await mainAction();
 
-    // TODO consider retries on failed pushes?
-    await git.push([...(forcePush ? ['--force'] : []), ...[remote, branch]]);
+    // does this force work?
+    await git.push([...(forcePush ? ['--force'] : []), remote, branch]);
 };
 
 const rebasePr = async (env, pr) => {
@@ -112,6 +114,7 @@ const handleApplyGitDiff = async (env, pr) => {
                 const dir = firstModified.split('/').first();
                 await git.commit(`${dir}: commit generate code`);
             },
+            // don't force push in case the user has pushed to their branch
             false
         );
     }
