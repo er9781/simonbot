@@ -7,8 +7,16 @@ exports.getRemotes = async () => git.getRemotes(true);
 
 // fetches a single branch
 exports.fetch = async (remote, branch, options) => {
-    await git.fetch(remote, `${branch}:${branch}`, options);
-    return await git.fetch(remote, branch, options);
+    try {
+        await git.fetch(remote, `${branch}:${branch}`, options);
+    } catch (err) {
+        console.log(err);
+    }
+    try {
+        return await git.fetch(remote, branch, options);
+    } catch (err) {
+        console.log(err);
+    }
 };
 
 exports.rebase = async branch => git.rebase([branch]);
