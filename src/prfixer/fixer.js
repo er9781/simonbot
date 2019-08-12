@@ -67,18 +67,23 @@ const handleRebasePr = async (env, pr) => {
         return;
     }
 
-    // fetch the branch first.
-    await fetchBranches(env, pr);
+    let isBehindBase = true;
+    try {
+        // fetch the branch first.
+        await fetchBranches(env, pr);
 
-    // this fails if our local branch is on this branch and failed to push previously.
-    // we probably want to check origin's status
-    const result = await git.raw([
-        'rev-list',
-        '--left-right',
-        '--count',
-        `origin/${pullrequest.getBaseBranch(pr)}...${pullrequest.getBranch(pr)}`,
-    ]);
-    const isBehindBase = parseInt(result.trim().split('\t')[0]) !== 0;
+        // this fails if our local branch is on this branch and failed to push previously.
+        // we probably want to check origin's status
+        const result = await git.raw([
+            'rev-list',
+            '--left-right',
+            '--count',
+            `origin/${pullrequest.getBaseBranch(pr)}...origin/${pullrequest.getBranch(pr)}`,
+        ]);
+        isBehindBase = parseInt(result.trim().split('\t')[0]) !== 0;
+    } catch (err) {
+        console.log(err);
+    }
 
     // if not behind base, not much we can do. We could retry builds potentially, but we can also just
     // wait until there's a new commit on master. Seems better.
