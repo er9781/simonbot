@@ -33,6 +33,7 @@ const request = async ({ method = 'POST', data, headers = {}, url = v4baseurl } 
     const respBody = JSON.parse(resp.body);
     // graphql api returns errros sometimes
     if (respBody.errors) {
+        console.log(respBody.errors);
         throw new Error({ error: respBody.errors });
     }
 

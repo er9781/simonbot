@@ -4,6 +4,7 @@ var pullrequest = require('../pullrequest/pullrequest');
 var buildkite = require('../buildkite/buildkite');
 var fs = require('fs');
 var github = require('../github/github');
+var constants = require('../constants');
 
 const fetchBranches = async (env, pr) => {
     // the stuff below is an attempt at an optimization where we'd
@@ -37,8 +38,10 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
 
     await mainAction();
 
-    // does this force work?
-    await git.push([...(forcePush ? ['--force'] : []), remote, branch]);
+    // force with lease will fail if other updates have been pushed
+    // since our last fetch. This is muuuuuch better than --force in case
+    // any body has pushed to their branch while we're operating on it.
+    await git.push([...(forcePush ? ['--force-with-lease'] : []), remote, branch]);
 };
 
 const rebasePr = async (env, pr) => {
@@ -56,7 +59,7 @@ const handleRebasePr = async (env, pr) => {
 
     // check retry count.
     const state = await github.getBotState(pr);
-    if (state.numRebases >= 10) {
+    if (state.numRebases >= constants.MAX_REBASE_ATTEMPTS) {
         console.log(`max rebases hit on ${pr.title}`);
         return;
     }

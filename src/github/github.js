@@ -4,6 +4,19 @@ var c = require('../common');
 var _ = require('lodash');
 var buildkite = require('../buildkite/buildkite');
 var pullrequest = require('../pullrequest/pullrequest');
+var constants = require('../constants');
+
+const addComment = async (pr, body) => {
+    const mutation = `
+        mutation {
+            addComment(input: {
+                body: "${body}",
+                subjectId: ${pr.id}
+            }) {subject{id}}
+        }`;
+    return await client.mutate(mutation);
+};
+exports.addComment = addComment;
 
 exports.getUsername = async () => {
     query = `
@@ -35,10 +48,9 @@ const mergePullRequest = async pr => {
 
     // worst case if this doesn't work, we'll drop to v3 api.
     // https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button
+    // return await client.mutate(mutation);
 
     try {
-        // return await client.mutate(mutation);
-
         console.log('attempting merge on ', pr.title);
         // v4 of the api doesn't support rebase flows. drop to v3 for this.
         const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
@@ -238,20 +250,7 @@ exports.getUpdatePrs = getUpdatePrs;
 exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;
 
-const appendToBody = async (pr, text) => {
-    newBody = pr.body + '\n' + text;
-    return await client.v3request({
-        uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}`,
-        method: 'PATCH',
-        data: { body: newBody },
-    });
-};
-
-exports.logRebase = async pr => {
-    return appendToBody(pr, '<!-- simonbot rebase -->');
-};
-
-exports.getBotState = pr => {
+const getBotState = pr => {
     const stateLines = pr.body.split('\n').filter(line => line.startsWith('<!-- simonbot'));
     const events = stateLines.map(line =>
         line
@@ -262,4 +261,107 @@ exports.getBotState = pr => {
     );
 
     return { numRebases: events.filter(e => e === 'rebase').length };
+};
+exports.getBotState = getBotState;
+
+const appendToBody = async (pr, text) => {
+    newBody = pr.body + '\n' + text;
+    try {
+        const resp = await client.v3request({
+            uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}`,
+            method: 'PATCH',
+            data: { body: newBody },
+        });
+
+        const { numRebases } = getBotState(pr);
+        // if we're over the max number of rebases, then let's comment to indicate that.
+        if (numRebases > constants.MAX_REBASE_ATTEMPTS) {
+            await addComment(pr, `🥵 max rebases hit (${constants.MAX_REBASE_ATTEMPTS})`);
+        }
+
+        return resp;
+    } catch (err) {
+        // throw errors away. Worst case we rebase an extra few times.
+        // the update will potentially fail if the user has updated the body?
+    }
+};
+
+exports.logRebase = async pr => {
+    return appendToBody(pr, '<!-- simonbot rebase -->');
+};
+
+exports.testAddComment = async () => {
+    console.log('test add comment');
+    try {
+        const { other } = await getPrsToFixup();
+        const pr = other.first();
+        await addComment(pr, 'test comment');
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+exports.test = async () => {
+    const query = `
+    query {
+        repository(name: "${config.secrets.repo}", owner: "${config.secrets.repoowner}") {
+            pullRequests(last: ${100}, states:OPEN) {
+                nodes {
+                    comments(last: ${50}) {
+                        nodes {
+                            author {
+                                login
+                            }
+                            body
+                            createdAt
+                            id
+                        }
+                    }
+                    createdAt
+                    updatedAt
+                    body
+                    title
+                    number
+                    id
+                    mergeable
+                    mergeStateStatus
+                    headRef {
+                        name
+                        target {
+                            oid
+                        }
+                    }
+                    # base branch so that rebasing can be done properly onto that.
+                    baseRef {
+                        name
+                        target {
+                            oid
+                        }
+                    }
+                    headRepository {
+                        url
+                    }
+                    # uh, don't have more than 100 commits? (github has max 250 on this lmao)
+                    commits(last: ${80}) {
+                        nodes {
+                            commit {
+                                oid
+                                commitUrl
+                                message
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;
+
+    try {
+        const resp = await client.query(query);
+        console.log(resp.body.data.repository.pullRequests.nodes);
+        return resp;
+    } catch (err) {
+        console.log(err);
+    }
 };
