@@ -41,7 +41,9 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     // force with lease will fail if other updates have been pushed
     // since our last fetch. This is muuuuuch better than --force in case
     // any body has pushed to their branch while we're operating on it.
+    console.log(`attempting push to ${remote} ${branch}`);
     await git.raw(['push', remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
+    await git.raw(['push', 'origin', branch, ...(forcePush ? ['--force-with-lease'] : [])]);
     // await git.push([remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
 };
 
@@ -80,6 +82,8 @@ const handleRebasePr = async (env, pr) => {
     // wait until there's a new commit on master. Seems better.
     if (isBehindBase) {
         return await rebasePr(env, pr);
+    } else {
+        console.log('Already up to date with base');
     }
 };
 
