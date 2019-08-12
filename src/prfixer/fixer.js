@@ -42,8 +42,14 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     // since our last fetch. This is muuuuuch better than --force in case
     // any body has pushed to their branch while we're operating on it.
     console.log(`attempting push to ${remote} ${branch}`);
-    await git.raw(['push', remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
-    await git.raw(['push', 'origin', branch, ...(forcePush ? ['--force-with-lease'] : [])]);
+    try {
+        await git.raw(['push', remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
+    } catch (err) {
+        console.log(err);
+        const args = ['push', 'origin', branch, ...(forcePush ? ['--force-with-lease'] : [])];
+        console.log(`attempting push with args ${args.join(' ')}`);
+        await git.raw(args);
+    }
     // await git.push([remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
 };
 
