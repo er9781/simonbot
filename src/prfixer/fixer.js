@@ -41,7 +41,7 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     // force with lease will fail if other updates have been pushed
     // since our last fetch. This is muuuuuch better than --force in case
     // any body has pushed to their branch while we're operating on it.
-    await git.push([...(forcePush ? ['--force-with-lease'] : []), remote, branch]);
+    await git.push([remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
 };
 
 const rebasePr = async (env, pr) => {
