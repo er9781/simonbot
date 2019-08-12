@@ -37,8 +37,8 @@ const mainActions = async env => {
 
 const fireloop = env => {
     // scratchpad.
-    github.testAddComment(env).then();
-    return;
+    // github.testAddComment(env).then();
+    // return;
 
     console.assert(env);
 
