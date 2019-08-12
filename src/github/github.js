@@ -251,10 +251,11 @@ exports.getPrsToFixup = getPrsToFixup;
 exports.mergePrs = mergePrs;
 
 const getBotState = pr => {
-    const stateLines = pr.body.split('\n').filter(line => line.startsWith('<!-- simonbot'));
+    const prefix = '<!-- simonbot';
+    const stateLines = pr.body.split('\n').filter(line => line.startsWith(prefix));
     const events = stateLines.map(line =>
         line
-            .slice('<!-- simonbot'.length)
+            .slice(prefix.length)
             .trim()
             .split(' ')
             .first()
