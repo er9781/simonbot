@@ -70,6 +70,8 @@ const handleRebasePr = async (env, pr) => {
     // fetch the branch first.
     await fetchBranches(env, pr);
 
+    // this fails if our local branch is on this branch and failed to push previously.
+    // we probably want to check origin's status
     const result = await git.raw([
         'rev-list',
         '--left-right',
