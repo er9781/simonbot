@@ -272,12 +272,8 @@ const appendToBody = async (pr, text) => {
             method: 'PATCH',
             data: { body: newBody },
         });
-
-        const { numRebases } = getBotState(pr);
-        // if we're over the max number of rebases, then let's comment to indicate that.
-        if (numRebases > constants.MAX_REBASE_ATTEMPTS) {
-            await addComment(pr, `🥵 max rebases hit (${constants.MAX_REBASE_ATTEMPTS})`);
-        }
+        // update the body on the pr to reflect what we just set it to. hacky, sorry
+        pr.body = newBody;
 
         return resp;
     } catch (err) {
@@ -287,7 +283,12 @@ const appendToBody = async (pr, text) => {
 };
 
 exports.logRebase = async pr => {
-    return appendToBody(pr, '<!-- simonbot rebase -->');
+    await appendToBody(pr, '<!-- simonbot rebase -->');
+    const { numRebases } = getBotState(pr);
+    // if we're over the max number of rebases, then let's comment to indicate that.
+    if (numRebases >= constants.MAX_REBASE_ATTEMPTS) {
+        await addComment(pr, `🥵 max rebases hit (${constants.MAX_REBASE_ATTEMPTS})`);
+    }
 };
 
 exports.testAddComment = async () => {
