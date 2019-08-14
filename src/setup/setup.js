@@ -7,9 +7,7 @@ var buildkite = require('../buildkite/buildkite');
 var _ = require('lodash');
 
 exports.getGitRemote = env =>
-    `https://${env.githubUsername}:${config.secrets.githubToken}@github.com/${config.secrets.repoowner}/${
-        config.secrets.repo
-    }`;
+    `https://${config.secrets.githubToken}:x-oauth-basic@github.com/${config.secrets.repoowner}/${config.secrets.repo}`;
 
 const hasSameKeys = (obj1, obj2) => {
     return _.isEqual(...[obj1, obj2].map(o => new Set(Object.keys(o))));

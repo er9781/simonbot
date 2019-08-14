@@ -43,9 +43,12 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     // any body has pushed to their branch while we're operating on it.
     console.log(`attempting push to ${remote} ${branch}`);
     try {
+        // this doesn't work. Dropping to regular git push operation which requires an ssh key
+        // unfortunately. TODO fix this.
         await git.raw(['push', remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
     } catch (err) {
-        console.log(err);
+        console.log(err.message);
+
         const args = ['push', 'origin', branch, ...(forcePush ? ['--force-with-lease'] : [])];
         console.log(`attempting push with args ${args.join(' ')}`);
         await git.raw(args);
