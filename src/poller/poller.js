@@ -35,7 +35,10 @@ const mainActions = async env => {
     await github.mergePrs(openPrs);
 };
 
-const fireloop = env => {
+// restart every 2 hours
+const autoRestartDelay = 2 * 60 * 60 * 1000;
+
+const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
     // github.testAddComment(env).then();
     // return;
@@ -53,7 +56,11 @@ const fireloop = env => {
         .finally(() => {
             // trigger next loop. wait at least some delay from last loop to let github get up to date.
             const delay = Math.max(2000, delaySeconds * 1000 - (Date.now() - startMs));
-            setTimeout(() => fireloop(env), delay);
+
+            // if we're still less than the auto restart delay, poll again. Otherwise exit and let systemd restart us.
+            if (Date.now() - startTime <= autoRestartDelay) {
+                setTimeout(() => fireloop(env, startTime), delay);
+            }
         });
 };
 
