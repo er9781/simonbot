@@ -170,10 +170,9 @@ const getRefStatuses = async sha => {
     });
 };
 
-const hasFailingStatus = async pr => {
-    // TODO let's cache the statuses on the PR here? and if it's there, just use that. yay mutatbility.
-
-    const isFailed = t => t === 'failure';
+const hasActionableFailingStatus = async pr => {
+    const isFailed = t => t.state === 'failure';
+    const isPending = t => t.state === 'pending';
     // we actually want the last commit with statuses. sometimes the last commit won't trigger ci.
     // why? deps detection? I'm not actually sure.
     let statuses = null;
@@ -184,7 +183,14 @@ const hasFailingStatus = async pr => {
             break;
         }
     }
-    return statuses.map(s => s.state).some(isFailed);
+
+    // we want the backend verifications to have finished so that our git diff applier will always pick up
+    // before just random rebasing. A bit hacky to put it in here, but rip. Could do a status check pre rebase.
+    if (statuses.filter(status => status.context.endsWith('golang-backend-verifications')).some(isPending)) {
+        return false;
+    }
+
+    return statuses.some(isFailed);
 };
 
 // github changed recently to actually store more of these as unicode emojis rather
@@ -217,7 +223,7 @@ const getPrsToFixup = async pullReqs => {
 
     // dedupe by id in case a pr is both shipped and fixuped
     const prs = _.uniqBy([...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))], pr => pr.id);
-    const failingPrs = await prs.filterAsync(hasFailingStatus);
+    const failingPrs = await prs.filterAsync(hasActionableFailingStatus);
 
     // we want to split out ones that are failing generically vs due to gitdiff.
     // so we annotate each pr with the reason it failed.
