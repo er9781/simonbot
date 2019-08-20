@@ -136,7 +136,7 @@ const handleApplyGitDiff = async (env, pr) => {
                 // TODO maybe split out adding files by top level dir? :)
                 const firstModified = (await git.status()).modified.first();
                 const dir = firstModified.split('/').first();
-                await git.commit(`${dir}: commit generate code`);
+                await git.commit(`${dir}: commit generated code`);
             },
             // don't force push in case the user has pushed to their branch
             false
