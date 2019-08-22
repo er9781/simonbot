@@ -1,10 +1,14 @@
 var github = require('../github/github');
 var fixer = require('../prfixer/fixer');
 var c = require('../common');
+var git = require('../git/git');
 
 const delaySeconds = 5;
 
 const mainActions = async env => {
+    // prune the origin once per loop. This sometimes causes issues
+    git.raw(['remote', 'prune', 'origin']);
+
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
