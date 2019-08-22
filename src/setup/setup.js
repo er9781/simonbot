@@ -45,7 +45,8 @@ exports.setup = async () => {
     try {
         env.githubUsername = await github.getUsername();
     } catch (err) {
-        throw new Error('failed to access github api. riperino.');
+        console.log(err);
+        throw new Error('failed to access github api. check your auth credentials.');
     }
 
     try {
