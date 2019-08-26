@@ -186,7 +186,11 @@ const hasActionableFailingStatus = async pr => {
 
     // we want the backend verifications to have finished so that our git diff applier will always pick up
     // before just random rebasing. A bit hacky to put it in here, but rip. Could do a status check pre rebase.
-    if (statuses.filter(status => status.context.endsWith('golang-backend-verifications')).some(isPending)) {
+    // so there's more than one backend verifications (not sure why there are 2). Let's say that all must be
+    // pending since one seems to finish and not the other. I'm not going to figure out why there are 2 right now.
+    if (statuses.filter(status => status.context.endsWith('golang-backend-verifications')).every(isPending)) {
+        console.log(statuses.filter(status => status.context.endsWith('golang-backend-verifications')));
+        console.log(pr.title, 'pending verifications status');
         return false;
     }
 
