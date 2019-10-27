@@ -145,7 +145,7 @@ const getPrs = async pullReqs => {
         }
     `;
 
-    const allUsers = ['viewer', ...config.extraUsers.map(user => `user(login: ${user})`)];
+    const allUsers = ['viewer', ...config.extraUsers.map(user => `user(login: "${user}")`)];
 
     const prSets = await allUsers.mapAsync(async user => {
         const data = (await client.query(getQuery(user))).body.data;
@@ -170,6 +170,11 @@ const getRefStatuses = async sha => {
     });
 };
 
+/**
+ * Checks for a given PR if it's currently in an actionable state to be fixed up. Sometimes we're still waiting on
+ * some status to be able to perform a rebase or commit generated code or whatnot.
+ * @param {*} pr
+ */
 const hasActionableFailingStatus = async pr => {
     const isFailed = t => t.state === 'failure';
     const isPending = t => t.state === 'pending';
@@ -189,7 +194,6 @@ const hasActionableFailingStatus = async pr => {
     // so there's more than one backend verifications (not sure why there are 2). Let's say that all must be
     // pending since one seems to finish and not the other. I'm not going to figure out why there are 2 right now.
     if (statuses.filter(status => status.context.endsWith('golang-backend-verifications')).every(isPending)) {
-        console.log(statuses.filter(status => status.context.endsWith('golang-backend-verifications')));
         console.log(pr.title, 'pending verifications status');
         return false;
     }
@@ -219,7 +223,7 @@ const prsToTriggered = async (textFilter, pullReqs) => {
 const getShippedPrs = async pullReqs => prsToTriggered(textTriggersShippit, pullReqs);
 const getUpdatePrs = async pullReqs => prsToTriggered(textTriggersUpdate, pullReqs);
 
-// get prs which have a triggering emoji which aren't passing ci. We want to rebase those.
+// get prs which have a triggering emoji which aren't passing ci. We want to action on those in some way.
 const getPrsToFixup = async pullReqs => {
     const pulls = await getOpenPrs(pullReqs);
     // we want to rebase if the last commit has any failing status.
