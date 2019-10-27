@@ -198,7 +198,9 @@ const hasActionableFailingStatus = async pr => {
         return false;
     }
 
-    return statuses.some(isFailed);
+    // For a status to be actionable, all statuses of the same name must be failing (if auto-retry in
+    // buildkite picked up, we'd like to wait for them all to finish)
+    return _.some(_.groupBy(statuses, 'context'), sts => sts.every(isFailed));
 };
 
 // github changed recently to actually store more of these as unicode emojis rather
