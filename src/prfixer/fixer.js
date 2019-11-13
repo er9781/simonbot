@@ -22,26 +22,24 @@ const fetchBranches = async (env, pr) => {
 const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     const remote = setup.getGitRemote(env);
     const branch = pullrequest.getBranch(pr);
-    console.log('git action on', pr.title, 'branch', branch);
 
     // force fetch to be sure. Maybe I just messed up my refs in my cloud install :shrug:
     await fetchBranches(env, pr);
-    console.log('fetch success');
 
     // await git.checkout(branch);
     await git.raw(['checkout', branch, '--force']);
-    console.log('checkout success');
     await git.clean();
     // reset hard to the remote ref no matter what.
     await git.raw(['reset', '--hard', `origin/${branch}`]);
-    console.log('reset success');
 
     await mainAction();
+
+    // recheck trigger prior to pushing in case they've removed it.
+    
 
     // force with lease will fail if other updates have been pushed
     // since our last fetch. This is muuuuuch better than --force in case
     // any body has pushed to their branch while we're operating on it.
-    console.log(`attempting push to ${remote} ${branch}`);
     try {
         // this doesn't work. Dropping to regular git push operation which requires an ssh key
         // unfortunately. TODO fix this.
@@ -53,7 +51,6 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
         console.log(`attempting push with args ${args.join(' ')}`);
         await git.raw(args);
     }
-    // await git.push([remote, branch, ...(forcePush ? ['--force-with-lease'] : [])]);
 };
 
 const rebasePr = async (env, pr) => {

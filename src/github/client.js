@@ -37,7 +37,7 @@ const request = async ({ method = 'POST', data, headers = {}, url = v4baseurl } 
         throw new Error({ error: respBody.errors });
     }
 
-    return { status: resp.status, body: JSON.parse(resp.body) };
+    return { status: resp.status, body: respBody };
 };
 
 const v3baseurl = 'https://api.github.com';

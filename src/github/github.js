@@ -124,7 +124,7 @@ const getPrs = async pullReqs => {
                         headRepository {
                             url
                         }
-                        # uh, don't have more than 100 commits? (github has max 250 on this lmao)
+                        # uh, don't have more than 80 commits? (github has max 250 on this lmao)
                         commits(last: 80) {
                             nodes {
                                 commit {
