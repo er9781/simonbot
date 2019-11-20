@@ -67,8 +67,8 @@ const handleRebasePr = async (env, pr) => {
     }
 
     // check retry count.
-    const state = await github.getBotState(pr);
-    if (state.numRebases >= constants.MAX_REBASE_ATTEMPTS) {
+    const numRebases = github.getNumberOfRebases(pr);
+    if (numRebases >= constants.MAX_REBASE_ATTEMPTS) {
         console.log(`max rebases hit on ${pr.title}`);
         return;
     }

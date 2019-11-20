@@ -270,7 +270,7 @@ exports.getPrsToFixup = getPrsToFixup;
 exports.getJankIndexUpdatingPrs = getJankIndexUpdatingPrs;
 exports.mergePrs = mergePrs;
 
-const getBotState = pr => {
+const getBotEvents = pr => {
     const prefix = '<!-- simonbot';
     const stateLines = pr.body.split('\n').filter(line => line.startsWith(prefix));
     const events = stateLines.map(line =>
@@ -280,10 +280,10 @@ const getBotState = pr => {
             .split(' ')
             .first()
     );
-
-    return { numRebases: events.filter(e => e === 'rebase').length };
+    return events;
 };
-exports.getBotState = getBotState;
+const getNumberOfRebases = pr => getBotEvents(pr).filter(e => e === 'rebase').length;
+exports.getNumberOfRebases = getNumberOfRebases;
 
 const appendToBody = async (pr, text) => {
     newBody = pr.body + '\n' + text;
@@ -305,7 +305,7 @@ const appendToBody = async (pr, text) => {
 
 exports.logRebase = async pr => {
     await appendToBody(pr, '<!-- simonbot rebase -->');
-    const { numRebases } = getBotState(pr);
+    const numRebases = getNumberOfRebases(pr);
     // if we're over the max number of rebases, then let's comment to indicate that.
     if (numRebases >= constants.MAX_REBASE_ATTEMPTS) {
         await addComment(pr, `🥵 max rebases hit (${constants.MAX_REBASE_ATTEMPTS})`);
