@@ -283,6 +283,9 @@ const getBotEvents = pr => {
     return events;
 };
 const getNumberOfRebases = pr => getBotEvents(pr).filter(e => e === 'rebase').length;
+const getJankHasNotBeenSet = pr => getBotEvents(pr).filter(e => e === 'janked').length === 0;
+
+exports.getJankHasNotBeenSet = getJankHasNotBeenSet;
 exports.getNumberOfRebases = getNumberOfRebases;
 
 const appendToBody = async (pr, text) => {
