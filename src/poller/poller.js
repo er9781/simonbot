@@ -29,9 +29,8 @@ const mainActions = async env => {
         failingGitDiff.map(pr => pr.title)
     );
 
-    if (prsThatUpdateJankIndex.length > 0) {
-	await Promise.all(prsThatUpdateJankIndex.map(jank.postJankIndexFromPr));
-    }
+    const prsThatNeedJankSetting = prsThatUpdateJankIndex.filter(github.getJankHasNotBeenSet);
+    await Promise.all(prsThatNeedJankSetting.map(jank.postJankIndexFromPr));
 
     if (env.buildkiteIsValid && failingGitDiff.length > 0) {
         // prs failing git diff will get the diff applied to them.
