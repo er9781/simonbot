@@ -211,7 +211,7 @@ const updateMeEmojis = [':fire_engine:', '🚒', ':man_health_worker:', '👨‍
 const textMatchesString = string => text => text.includes(string);
 const textMatchesAnyString = stringSet => text => stringSet.some(s => text.includes(s));
 
-const textMatchesJankIndex = textMatchesString("jank:");
+const textMatchesJankIndex = textMatchesString('jank:');
 const textMatchesShippit = textMatchesAnyString(shippedEmojis);
 const textMatchesUpdate = textMatchesAnyString(updateMeEmojis);
 
@@ -307,8 +307,8 @@ const appendToBody = async (pr, text) => {
 };
 
 exports.logSetJank = async pr => {
-  await appendToBody(pr, '<!-- simonbot janked -->');
-}
+    await appendToBody(pr, '<!-- simonbot janked -->');
+};
 
 exports.logRebase = async pr => {
     await appendToBody(pr, '<!-- simonbot rebase -->');

@@ -1,4 +1,5 @@
 const got = require('got');
+const github = require('../github/github');
 
 const jankRe = /jank:([+\-]?)([0-9]+)/;
 
@@ -33,6 +34,7 @@ const postJankIndexFromPr = async pr => {
     try {
         await Promise.all([postJankIndex(jankBody), github.logSetJank(pr)]);
     } catch (e) {
+        console.log(e);
         console.log('ripperoni lololololol fix me fix me');
     }
 };
