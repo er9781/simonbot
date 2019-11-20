@@ -208,7 +208,7 @@ const hasActionableFailingStatus = async pr => {
 const shippedEmojis = [':shipit:', ':sheep:', '🐑'];
 const updateMeEmojis = [':fire_engine:', '🚒', ':man_health_worker:', '👨‍⚕'];
 
-const textTriggersEmojiSet = emojiSet => text => emojiSet.some(e => text.includes(e));
+const textMatchesAnyString = stringSet => text => stringSet.some(s => text.includes(s));
 
 const textTriggersShippit = textTriggersEmojiSet(shippedEmojis);
 const textTriggersUpdate = textTriggersEmojiSet(updateMeEmojis);
