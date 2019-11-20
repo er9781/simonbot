@@ -306,6 +306,10 @@ const appendToBody = async (pr, text) => {
     }
 };
 
+exports.logSetJank = async pr => {
+  await appendToBody(pr, '<!-- simonbot janked -->');
+}
+
 exports.logRebase = async pr => {
     await appendToBody(pr, '<!-- simonbot rebase -->');
     const numRebases = getNumberOfRebases(pr);
