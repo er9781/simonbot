@@ -2,6 +2,7 @@ var github = require('../github/github');
 var fixer = require('../prfixer/fixer');
 var c = require('../common');
 var git = require('../git/git');
+var jank = require('../jank/jank');
 
 const delaySeconds = 5;
 
@@ -12,7 +13,13 @@ const mainActions = async env => {
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
-    let { other = [], failingGitDiff = [] } = await github.getPrsToFixup(openPrs);
+    let [
+      { other = [], failingGitDiff = [] },
+      prsThatUpdateJankIndex
+    ] = await Promise.all([
+      github.getPrsToFixup(openPrs),
+      github.getJankIndexUpdatingPrs(openPrs)
+    ]);
 
     console.log(
         'main',
@@ -21,6 +28,10 @@ const mainActions = async env => {
         'failing diff',
         failingGitDiff.map(pr => pr.title)
     );
+
+    if (prsThatUpdateJankIndex.length > 0) {
+	await Promise.all(prsThatUpdateJankIndex.map(jank.postJankIndexFromPr));
+    }
 
     if (env.buildkiteIsValid && failingGitDiff.length > 0) {
         // prs failing git diff will get the diff applied to them.
