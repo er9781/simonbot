@@ -13,23 +13,23 @@ const mainActions = async env => {
     // we get the open prs up front so that each call below won't need to do it.
     const openPrs = await github.getOpenPrs();
 
-    let [
-      { other = [], failingGitDiff = [] },
-      prsThatUpdateJankIndex
-    ] = await Promise.all([
-      github.getPrsToFixup(openPrs),
-      github.getJankIndexUpdatingPrs(openPrs)
+    let [{ other = [], failingGitDiff = [] }, prsThatUpdateJankIndex] = await Promise.all([
+        github.getPrsToFixup(openPrs),
+        github.getJankIndexUpdatingPrs(openPrs),
     ]);
+
+    const prsThatNeedJankSetting = prsThatUpdateJankIndex.filter(github.getJankHasNotBeenSet);
 
     console.log(
         'main',
         'other fixup prs',
         other.map(pr => pr.title),
         'failing diff',
-        failingGitDiff.map(pr => pr.title)
+        failingGitDiff.map(pr => pr.title),
+        'janking',
+        prsThatNeedJankSetting.map(pr => pr.title)
     );
 
-    const prsThatNeedJankSetting = prsThatUpdateJankIndex.filter(github.getJankHasNotBeenSet);
     await Promise.all(prsThatNeedJankSetting.map(jank.postJankIndexFromPr));
 
     if (env.buildkiteIsValid && failingGitDiff.length > 0) {
