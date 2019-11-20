@@ -29,10 +29,14 @@ const postJankIndexFromPr = async pr => {
   const text = pr.body;
   const jankBody = getJankBodyUpdateFromString(text);
   if (jank === undefined) return;
-  await Promise.all([
-      postJankIndex(jankBody),
-      github.logSetJank(pr)
-  ])
+  try {
+    await Promise.all([
+	postJankIndex(jankBody),
+	github.logSetJank(pr)
+    ])
+  } catch (e) {
+    console.log("ripperoni lololololol fix me fix me");
+  }
 }
 
 exports.postJankIndexFromPr = postJankIndexFromPr;
