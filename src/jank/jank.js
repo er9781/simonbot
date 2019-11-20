@@ -25,11 +25,14 @@ const postJankIndex = body => got.post(`https://shaneschulte.com/mob_jank_gauge/
   headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
 });
 
-const handlePr = async pr => {
+const postJankIndexFromPr = async pr => {
   const text = pr.body;
   const jankBody = getJankBodyUpdateFromString(text);
   if (jank === undefined) return;
-  await postJankIndex(jankBody);
+  await Promise.all([
+      postJankIndex(jankBody),
+      github.logSetJank(pr)
+  ])
 }
 
 exports.postJankIndexFromPr = postJankIndexFromPr;
