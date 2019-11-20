@@ -211,8 +211,8 @@ const updateMeEmojis = [':fire_engine:', '🚒', ':man_health_worker:', '👨‍
 const textMatchesString = string => text => text.includes(string);
 const textMatchesAnyString = stringSet => text => stringSet.some(s => text.includes(s));
 
-const textTriggersShippit = textTriggersEmojiSet(shippedEmojis);
-const textTriggersUpdate = textTriggersEmojiSet(updateMeEmojis);
+const textMatchesShippit = textMatchesAnyString(shippedEmojis);
+const textMatchesUpdate = textMatchesAnyString(updateMeEmojis);
 
 const prsToTriggered = async (textFilter, pullReqs) => {
     const prs = (await getOpenPrs(pullReqs)).filter(pr => {
@@ -223,8 +223,8 @@ const prsToTriggered = async (textFilter, pullReqs) => {
 
 // a pr is shipped if one of the emojis present in any of the comments.
 // if you don't pass in pullReqs, they'll be queried from github.
-const getShippedPrs = async pullReqs => prsToTriggered(textTriggersShippit, pullReqs);
-const getUpdatePrs = async pullReqs => prsToTriggered(textTriggersUpdate, pullReqs);
+const getShippedPrs = async pullReqs => prsToTriggered(textMatchesShippit, pullReqs);
+const getUpdatePrs = async pullReqs => prsToTriggered(textMatchesUpdate, pullReqs);
 
 // get prs which have a triggering emoji which aren't passing ci. We want to action on those in some way.
 const getPrsToFixup = async pullReqs => {
