@@ -15,7 +15,7 @@ const modeString = mode => {
   return `&mode=${modes[mode]}`;
 }
 const getJankBodyUpdateFromString = str => {
-  const [_, mode, s] = str.match(jankRe);
+  const [_, mode, s] = str.match(jankRe) || [];
   if (!s) return undefined;
   return `jank=${boundJank(Number(s))}${modeString(mode)}`;
 }
