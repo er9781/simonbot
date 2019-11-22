@@ -306,12 +306,14 @@ const appendToBody = async (pr, text) => {
     }
 };
 
+const logEvent = async (pr, text) => await appendToBody(pr, `<!-- simonbot ${event} -->`);
+
 exports.logSetJank = async pr => {
-    await appendToBody(pr, '<!-- simonbot janked -->');
+    await logEvent(pr, 'janked');
 };
 
 exports.logRebase = async pr => {
-    await appendToBody(pr, '<!-- simonbot rebase -->');
+    await logEvent(pr, 'rebase');
     const numRebases = getNumberOfRebases(pr);
     // if we're over the max number of rebases, then let's comment to indicate that.
     if (numRebases >= constants.MAX_REBASE_ATTEMPTS) {
