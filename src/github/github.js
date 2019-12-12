@@ -306,7 +306,7 @@ const appendToBody = async (pr, text) => {
     }
 };
 
-const logEvent = async (pr, text) => await appendToBody(pr, `<!-- simonbot ${event} -->`);
+const logEvent = async (pr, text) => await appendToBody(pr, `<!-- simonbot ${text} -->`);
 
 exports.logSetJank = async pr => {
     await logEvent(pr, 'janked');
