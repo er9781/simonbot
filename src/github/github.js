@@ -99,6 +99,11 @@ const getPrs = async pullReqs => {
                                 id
                             }
                         }
+                        labels(last: ${10}) {
+                            nodes{
+                                name
+                            }
+                        }
                         createdAt
                         updatedAt
                         body
@@ -212,7 +217,7 @@ const textMatchesString = string => text => text.includes(string);
 const textMatchesAnyString = stringSet => text => stringSet.some(s => text.includes(s));
 
 const textMatchesJankIndex = textMatchesString('jank:');
-const textMatchesShippit = textMatchesAnyString(shippedEmojis);
+const textMatchesShipit = textMatchesAnyString(shippedEmojis);
 const textMatchesUpdate = textMatchesAnyString(updateMeEmojis);
 
 const triggers = {
@@ -225,13 +230,17 @@ const prsToTriggered = async (triggerReason, textFilter, pullReqs) => {
     const prs = (await getOpenPrs(pullReqs)).filter(pr => {
         return textFilter(pr.body) || pr.comments.nodes.map(c => c.body).some(textFilter);
     });
+    if (filterByLabelName) {
+        prs = prs.filter(pr => {return !pr.labels.nodes.some(
+                l => l.name.toLowerCase() === 'do not merge')})
+      }
     // annotate the trigger reason.
     return prs.map(pr => ({ ...pr, triggerReason }));
-};
+}
 
 // a pr is shipped if one of the emojis present in any of the comments.
 // if you don't pass in pullReqs, they'll be queried from github.
-const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShippit, pullReqs);
+const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShippit, pullReqs, true);
 const getUpdatePrs = async pullReqs => prsToTriggered(triggers.fixus, textMatchesUpdate, pullReqs);
 const getJankIndexUpdatingPrs = async pullReqs => prsToTriggered(triggers.mobileJank, textMatchesJankIndex, pullReqs);
 
