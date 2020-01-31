@@ -50,7 +50,7 @@ const mainActions = async env => {
 // restart every 2 hours
 const autoRestartDelay = 2 * 60 * 60 * 1000;
 
-const minDelayInterval = 15;
+const minDelayIntervalSeconds = 30;
 
 // Misc actions we want to take on shutdown.
 const shutdown = async () => {
@@ -81,7 +81,7 @@ const fireloop = (env, startTime = Date.now()) => {
         })
         .finally(() => {
             // trigger next loop. wait at least some delay from last loop to let github get up to date.
-            const delay = Math.max(2000, minDelayInterval * 1000 - (Date.now() - startMs));
+            const delay = Math.max(2000, minDelayIntervalSeconds * 1000 - (Date.now() - startMs));
 
             // if we're still less than the auto restart delay, poll again. Otherwise exit and let systemd restart us.
             if (Date.now() - startTime <= autoRestartDelay) {
