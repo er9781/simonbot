@@ -332,6 +332,15 @@ exports.testAddComment = async () => {
     }
 };
 
+exports.getRateLimitInfo = async () => {
+    try {
+        const resp = await client.v3request({ uri: '/rate_limit' });
+        return resp.body.resources;
+    } catch (err) {
+        console.log(err);
+    }
+};
+
 exports.test = async () => {
     const query = `
     query {

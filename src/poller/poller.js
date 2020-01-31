@@ -52,9 +52,21 @@ const autoRestartDelay = 2 * 60 * 60 * 1000;
 
 const minDelayInterval = 15;
 
+// Misc actions we want to take on shutdown.
+const shutdown = async () => {
+    try {
+        // log our current rate limit to monitor.
+        const rateLimit = await github.getRateLimitInfo();
+        console.log('current rate limit: ', JSON.stringify(rateLimit.graphql));
+        console.log(`reset happening at ${new Date(rateLimit.graphql.reset * 1000)} it is now ${new Date()}`);
+    } catch (err) {
+        console.log('shutdown actions failed', err);
+    }
+};
+
 const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
-    // github.testAddComment(env).then();
+    // shutdown().then();
     // return;
 
     console.assert(env);
@@ -74,6 +86,9 @@ const fireloop = (env, startTime = Date.now()) => {
             // if we're still less than the auto restart delay, poll again. Otherwise exit and let systemd restart us.
             if (Date.now() - startTime <= autoRestartDelay) {
                 setTimeout(() => fireloop(env, startTime), delay);
+            } else {
+                // clean up and exit.
+                shutdown().then();
             }
         });
 };
