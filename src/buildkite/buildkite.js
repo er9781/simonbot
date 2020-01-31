@@ -39,10 +39,16 @@ const getDiffPatch = async pr => {
 
 exports.getDiffPatch = getDiffPatch;
 
+const failReasons = {
+    failingGitDiff: 'failingGitDiff',
+    other: 'other',
+};
+exports.failReasons = failReasons;
+
 // returns "failingGitDiff" if failing git diff, "other" for other failing statuses.
 exports.isFailingGitDiff = async pr => {
     const patch = await getDiffPatch(pr);
-    return patch ? 'failingGitDiff' : 'other';
+    return patch ? failReasons.failingGitDiff : failReasons.other;
 };
 
 const requiredScopes = ['read_artifacts', 'read_builds', 'read_user'];

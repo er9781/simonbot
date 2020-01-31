@@ -194,7 +194,7 @@ const hasActionableFailingStatus = async pr => {
     // so there's more than one backend verifications (not sure why there are 2). Let's say that all must be
     // pending since one seems to finish and not the other. I'm not going to figure out why there are 2 right now.
     if (statuses.filter(status => status.context.endsWith('golang-backend-verifications')).every(isPending)) {
-        console.log(pr.title, 'pending verifications status');
+        // console.log(pr.title, 'pending verifications status');
         return false;
     }
 
@@ -215,18 +215,25 @@ const textMatchesJankIndex = textMatchesString('jank:');
 const textMatchesShippit = textMatchesAnyString(shippedEmojis);
 const textMatchesUpdate = textMatchesAnyString(updateMeEmojis);
 
-const prsToTriggered = async (textFilter, pullReqs) => {
+const triggers = {
+    shipped: 'SHIPIT',
+    fixup: 'FIXUP',
+    mobileJank: 'JANK',
+};
+
+const prsToTriggered = async (triggerReason, textFilter, pullReqs) => {
     const prs = (await getOpenPrs(pullReqs)).filter(pr => {
         return textFilter(pr.body) || pr.comments.nodes.map(c => c.body).some(textFilter);
     });
-    return prs;
+    // annotate the trigger reason.
+    return prs.map(pr => ({ ...pr, triggerReason }));
 };
 
 // a pr is shipped if one of the emojis present in any of the comments.
 // if you don't pass in pullReqs, they'll be queried from github.
-const getShippedPrs = async pullReqs => prsToTriggered(textMatchesShippit, pullReqs);
-const getUpdatePrs = async pullReqs => prsToTriggered(textMatchesUpdate, pullReqs);
-const getJankIndexUpdatingPrs = async pullReqs => prsToTriggered(textMatchesJankIndex, pullReqs);
+const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShippit, pullReqs);
+const getUpdatePrs = async pullReqs => prsToTriggered(triggers.fixus, textMatchesUpdate, pullReqs);
+const getJankIndexUpdatingPrs = async pullReqs => prsToTriggered(triggers.mobileJank, textMatchesJankIndex, pullReqs);
 
 // get prs which have a triggering emoji which aren't passing ci. We want to action on those in some way.
 const getPrsToFixup = async pullReqs => {
@@ -234,15 +241,22 @@ const getPrsToFixup = async pullReqs => {
     // we want to rebase if the last commit has any failing status.
     // pending statuses are ok because some statuses don't resolve until approvals happen.
 
-    // dedupe by id in case a pr is both shipped and fixuped
+    // dedupe by id in case a pr is both shipped and fixuped. We put shipped PRs first so that shipit action takes priority.
     const prs = _.uniqBy([...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))], pr => pr.id);
     const failingPrs = await prs.filterAsync(hasActionableFailingStatus);
 
     // we want to split out ones that are failing generically vs due to gitdiff.
     // so we annotate each pr with the reason it failed.
-    const isFailure = await failingPrs.mapAsync(buildkite.isFailingGitDiff);
+    const failureReasons = await failingPrs.mapAsync(async pr => {
+        // shipped PRs we don't want to consider if they're failing git diff.
+        if (pr.triggerReason === triggers.shipped) {
+            return buildkite.failReasons.other;
+        }
+        // check if the PR is failing git diff in github.
+        return await buildkite.isFailingGitDiff(pr);
+    });
     failingPrs.forEach((pr, idx) => {
-        pr.failureReason = isFailure[idx];
+        pr.failureReason = failureReasons[idx];
     });
 
     return _.groupBy(_.orderBy(failingPrs, 'updatedAt', 'desc'), 'failureReason');

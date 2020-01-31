@@ -35,7 +35,6 @@ const gitBranchAction = async (env, pr, mainAction, forcePush = true) => {
     await mainAction();
 
     // recheck trigger prior to pushing in case they've removed it.
-    
 
     // force with lease will fail if other updates have been pushed
     // since our last fetch. This is muuuuuch better than --force in case
@@ -88,7 +87,8 @@ const handleRebasePr = async (env, pr) => {
         ]);
         isBehindBase = parseInt(result.trim().split('\t')[0]) !== 0;
     } catch (err) {
-        console.log(err);
+        // on error, just attempt a rebase.
+        console.log('failed to rev-list', err);
     }
 
     // if not behind base, not much we can do. We could retry builds potentially, but we can also just
