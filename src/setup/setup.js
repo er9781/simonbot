@@ -52,7 +52,10 @@ exports.setup = async () => {
     try {
         const isValid = await buildkite.checkAuth();
         if (!isValid) {
-            console.warn('invalid buildkite token, or missing scopes. must have all of', ...buildkite.requiredScopes);
+            console.warn(
+                'invalid buildkite token, or missing scopes. must have all these scopes:',
+                ...buildkite.requiredScopes
+            );
         } else {
             env.buildkiteIsValid = true;
         }

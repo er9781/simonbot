@@ -3,6 +3,26 @@ var pullrequest = require('../pullrequest/pullrequest');
 var _ = require('lodash');
 var http = require('../http/http');
 
+// TODO maybe need to update for mobile tests as well?
+const getLatestMasterBuild = async () => {
+    try {
+        const resp = await buildkite.request({
+            uri: '/organizations/samsara/pipelines/backend-test/builds',
+            // filter down to passed or failed commits.
+            query: { branch: 'master', ['state[]']: ['passed', 'failed'] },
+            // for testing when failed. Filter to failed only. Don't leave in prod.
+            // query: { branch: 'master', ['state[]']: ['failed'] },
+        });
+        const latestBuild = _.orderBy(resp.body, ['created_at'], ['desc']).first();
+        return latestBuild;
+    } catch (err) {
+        console.log('failed to get latest status on master', err);
+        // TODO what to do here? exit? Always rebase? Return a fake passing state so that other things
+        // go ahead? seems reasonable.
+    }
+};
+exports.getLatestMasterBuild = getLatestMasterBuild;
+
 const getDiffPatch = async pr => {
     if (pr.cachedPatch === undefined) {
         try {

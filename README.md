@@ -17,6 +17,9 @@ until it passes CI. This is useful if you want to show passing CI before asking 
 waiting for master to get a fix for tests that aren't relevant to your PR. If it has buildkite access,
 it will try to apply diff patches to your pr as needed for generated code you forgot to commit.
 
+All actions taken by the bot use --force-with-lease git option so that if you've pushed changes since 
+the bot last fetched, it will not override your new code.
+
 ## Configuration
 - add your github personal access token ([get one here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)) into a file called `secrets.json`
 - optionally add a buildkite access token to enable the buildkite features ([get one here](https://buildkite.com/docs/apis/rest-api#authentication))

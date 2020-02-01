@@ -59,9 +59,10 @@ const rebasePr = async (env, pr) => {
     return await github.logRebase(pr);
 };
 
-const handleRebasePr = async (env, pr) => {
+const handleRebasePr = async (env, pr, getLatestMasterBuild) => {
     if (pr.mergeable === 'CONFLICTING') {
-        // TODO what to do if there are merge conflicts? email me?
+        // TODO what to do if there are merge conflicts? email the user?. comment?
+        // TODO SIMON add comment to PR about conflict? (needs state)
         return;
     }
 
@@ -91,6 +92,12 @@ const handleRebasePr = async (env, pr) => {
         console.log('failed to rev-list', err);
     }
 
+    const latestMasterBuild = await getLatestMasterBuild();
+    // if the last finished build on master is failing, don't rebase, instead comment to that effect.
+    if (latestMasterBuild.state === 'failed') {
+        return await github.logSkippingRebase(pr);
+    }
+
     // if not behind base, not much we can do. We could retry builds potentially, but we can also just
     // wait until there's a new commit on master. Seems better.
     if (isBehindBase) {
@@ -100,19 +107,19 @@ const handleRebasePr = async (env, pr) => {
     }
 };
 
-const handleRepoAction = async (env, pr, action) => {
+const handleRepoAction = async (env, pr, action, getLatestMasterBuild) => {
     // cannot do them all in parallel since we're using only 1 cloned repo.
     // TODO maybe acquire lock for this stuff.
     try {
-        return await action(env, pr);
+        return await action(env, pr, getLatestMasterBuild);
     } catch (err) {
         // if any fails, continue on to the next one.
         // TODO log the error somewhere? Should I run sentry lmao?
     }
 };
 
-exports.handleAllPrsToRebase = async (env, prs) => {
-    return prs.mapAsync(pr => handleRepoAction(env, pr, handleRebasePr));
+exports.handleAllPrsToRebase = async (env, prs, getLatestMasterBuild) => {
+    return prs.mapAsync(pr => handleRepoAction(env, pr, handleRebasePr, getLatestMasterBuild));
 };
 
 const handleApplyGitDiff = async (env, pr) => {

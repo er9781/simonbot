@@ -11,7 +11,7 @@ const addComment = async (pr, body) => {
         mutation {
             addComment(input: {
                 body: "${body}",
-                subjectId: ${pr.id}
+                subjectId: "${pr.id}"
             }) {subject{id}}
         }`;
     return await client.mutate(mutation);
@@ -131,6 +131,7 @@ const getPrs = async pullReqs => {
                                     oid
                                     commitUrl
                                     message
+                                    authoredDate
                                     # status will be pending since reviewer count is there. 
                                     # probably use checkSuites
                                     status {
@@ -287,17 +288,18 @@ exports.mergePrs = mergePrs;
 const getBotEvents = pr => {
     const prefix = '<!-- simonbot';
     const stateLines = pr.body.split('\n').filter(line => line.startsWith(prefix));
-    const events = stateLines.map(line =>
-        line
+    const events = stateLines.map(line => {
+        const tokens = line
             .slice(prefix.length)
             .trim()
-            .split(' ')
-            .first()
-    );
+            .split(' ');
+        return { type: tokens[0], timestamp: new Date(tokens[1] && Number(tokens[1])) };
+    });
     return events;
 };
-const getNumberOfRebases = pr => getBotEvents(pr).filter(e => e === 'rebase').length;
-const getJankHasNotBeenSet = pr => getBotEvents(pr).filter(e => e === 'janked').length === 0;
+const getNumberOfRebases = pr => getBotEvents(pr).filter(e => e.type === 'rebase').length;
+const getJankHasNotBeenSet = pr => getBotEvents(pr).filter(e => e.type === 'janked').length === 0;
+const getRebaseSkippedLogs = pr => getBotEvents(pr).filter(e => e.type === 'rebaseSkipped');
 
 exports.getJankHasNotBeenSet = getJankHasNotBeenSet;
 exports.getNumberOfRebases = getNumberOfRebases;
@@ -320,7 +322,7 @@ const appendToBody = async (pr, text) => {
     }
 };
 
-const logEvent = async (pr, text) => await appendToBody(pr, `<!-- simonbot ${text} -->`);
+const logEvent = async (pr, text) => await appendToBody(pr, `<!-- simonbot ${text} ${Date.now()} -->`);
 
 exports.logSetJank = async pr => {
     await logEvent(pr, 'janked');
@@ -332,6 +334,18 @@ exports.logRebase = async pr => {
     // if we're over the max number of rebases, then let's comment to indicate that.
     if (numRebases >= constants.MAX_REBASE_ATTEMPTS) {
         await addComment(pr, `🥵 max rebases hit (${constants.MAX_REBASE_ATTEMPTS})`);
+    }
+};
+
+exports.logSkippingRebase = async pr => {
+    // we comment if we're skipping. If there's a comment from equal or after
+    // the time of the most recent commit, then don't comment.
+    // that way, if we rebase or people force push, we'll comment again.
+    const latestSkipRebase = getRebaseSkippedLogs(pr).last();
+    const shouldComment = new Date(pullrequest.getLatestCommit(pr).authoredDate) > latestSkipRebase.timestamp;
+    if (shouldComment) {
+        await logEvent(pr, 'rebaseSkipped');
+        await addComment(pr, `😴 master is broken. Sheepy will rebase once master is passing.`);
     }
 };
 

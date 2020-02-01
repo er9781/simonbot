@@ -1,10 +1,23 @@
 var github = require('../github/github');
+var buildkite = require('../buildkite/buildkite');
 var fixer = require('../prfixer/fixer');
 var c = require('../common');
 var git = require('../git/git');
 var jank = require('../jank/jank');
 
 const mainActions = async env => {
+    // once per loop, let's get master status to inform decisions;
+    // We return a closure over it to memoize the buildkite call. todo pull in memoize helper
+    const getLatestMaster = (() => {
+        let latestBuild;
+        return async () => {
+            if (!latestBuild) {
+                latestBuild = await buildkite.getLatestMasterBuild();
+            }
+            return latestBuild;
+        };
+    })();
+
     // prune the origin once per loop. This sometimes causes issues
     git.raw(['remote', 'prune', 'origin']);
 
@@ -40,7 +53,7 @@ const mainActions = async env => {
     }
 
     if (other.length > 0) {
-        await fixer.handleAllPrsToRebase(env, other);
+        await fixer.handleAllPrsToRebase(env, other, getLatestMaster);
     }
 
     // needs github app upgrade.
@@ -66,7 +79,7 @@ const shutdown = async () => {
 
 const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
-    // shutdown().then();
+    // buildkite.getLatestMasterBuild().then(console.log);
     // return;
 
     console.assert(env);
