@@ -5,8 +5,13 @@ var fixer = require('../prfixer/fixer');
 var c = require('../common');
 var git = require('../git/git');
 var jank = require('../jank/jank');
+const config = require('../config');
+
+let mainActionsCounter = 0;
 
 const mainActions = async env => {
+    mainActionsCounter++;
+
     // once per loop, let's get master status to inform decisions;
     // We return a closure over it to memoize the buildkite call. todo pull in memoize helper
     const getLatestMaster = (() => {
@@ -23,7 +28,17 @@ const mainActions = async env => {
     git.raw(['remote', 'prune', 'origin']);
 
     // we get the open prs up front so that each call below won't need to do it.
-    const openPrs = await github.getOpenPrs();
+    // only get the full list of PRs every 20 attempts. This should ensure good latency for 95%
+    // of cases.
+    const openPrs = await github.getOpenPrs(undefined, mainActionsCounter % 20 === 0);
+
+    if (config.secrets.autoApproveFixMaster) {
+        // Go approve fix master gen'ed PRs
+        const fixMasterPrs = await github.getFixMasterPrs(openPrs);
+        for (const pr of fixMasterPrs) {
+            await github.approvePr(pr);
+        }
+    }
 
     let [{ other = [], failingGitDiff = [] }, prsThatUpdateJankIndex] = await Promise.all([
         github.getPrsToFixup(openPrs),
@@ -87,8 +102,8 @@ const shutdown = async () => {
 const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
     // buildkite.getLatestMasterBuild().then(console.log);
-    shutdown().then();
-    return;
+    // shutdown().then();
+    // return;
 
     console.assert(env);
 

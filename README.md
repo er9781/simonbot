@@ -20,6 +20,10 @@ it will try to apply diff patches to your pr as needed for generated code you fo
 All actions taken by the bot use --force-with-lease git option so that if you've pushed changes since 
 the bot last fetched, it will not override your new code.
 
+## Misc Notes
+- The bot will act faster on more recent PRs. If you decide to use the bot on a PR that's somewhat old, expect
+longer response time.
+
 ## Configuration
 - add your github personal access token ([get one here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line)) into a file called `secrets.json`
 - optionally add a buildkite access token to enable the buildkite features ([get one here](https://buildkite.com/docs/apis/rest-api#authentication))

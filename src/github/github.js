@@ -54,7 +54,6 @@ const mergePullRequest = async pr => {
     // return await client.mutate(mutation);
 
     try {
-        console.log('attempting merge on ', pr.title);
         // v4 of the api doesn't support rebase flows. drop to v3 for this.
         const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
         const resp = await client.v3request({
@@ -67,7 +66,7 @@ const mergePullRequest = async pr => {
         numSheeps.numSheeps++;
         return resp;
     } catch (err) {
-        console.log(err);
+        console.log('failed to merge', pr.title, err);
     }
 };
 
@@ -78,7 +77,7 @@ const maxNodes = 100;
 
 // if pullReqs is passed in, this is the identity function.
 // useful in case they're being passed around.
-const getPrs = async pullReqs => {
+const getPrs = async (pullReqs, getFullList) => {
     if (pullReqs) {
         return pullReqs;
     }
@@ -180,7 +179,15 @@ const getPrs = async pullReqs => {
         try {
             resp = await client.query(getQuery(nextCursor));
             appendPrs(resp);
-            nextCursor = respToCursor(resp);
+
+            // we stop at 120prs unless told to get the full list.
+            // we use this to reduce latency on most calls, but every so often
+            // will check all open PRs.
+            if (getFullList || prs.length < 120) {
+                nextCursor = respToCursor(resp);
+            } else {
+                nextCursor = undefined;
+            }
         } catch (err) {
             numErrors++;
 
@@ -207,8 +214,8 @@ const getPrs = async pullReqs => {
 
 // prs that are open that are in the repo the app is configured for.
 // if you don't pass in pullReqs, they'll be queried from github.
-const getOpenPrs = async pullReqs => {
-    return (await getPrs(pullReqs)).filter(pr => config.gitrepourl.includes(pr.headRepository.url));
+const getOpenPrs = async (pullReqs, getFullList = false) => {
+    return (await getPrs(pullReqs, getFullList)).filter(pr => config.gitrepourl.includes(pr.headRepository.url));
 };
 
 // shoot me. Github api v4 doesn't have statuses yet -______-. So let's go to v3 and get them.
@@ -217,6 +224,15 @@ const getRefStatuses = async sha => {
         uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/commits/${sha}/statuses`,
     });
 };
+
+const approvePr = async pr => {
+    const createResp = await client.v3request({
+        uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/reviews`,
+        method: 'POST',
+        data: { body: 'sheepy approved', event: 'APPROVE' },
+    });
+};
+exports.approvePr = approvePr;
 
 /**
  * Checks for a given PR if it's currently in an actionable state to be fixed up. Sometimes we're still waiting on
@@ -287,6 +303,12 @@ const prsToTriggered = async (triggerReason, textFilter, pullReqs, filterByLabel
 const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShipit, pullReqs, true);
 const getUpdatePrs = async pullReqs => prsToTriggered(triggers.fixus, textMatchesUpdate, pullReqs);
 const getJankIndexUpdatingPrs = async pullReqs => prsToTriggered(triggers.mobileJank, textMatchesJankIndex, pullReqs);
+const getFixMasterPrs = async pullReqs => {
+    return (await getOpenPrs(pullReqs)).filter(
+        pr => pr.author.login === 'changpingc' && pr.title === 'fix master branch'
+    );
+};
+exports.getFixMasterPrs = getFixMasterPrs;
 
 // get prs which have a triggering emoji which aren't passing ci. We want to action on those in some way.
 const getPrsToFixup = async pullReqs => {
