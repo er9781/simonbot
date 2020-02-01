@@ -63,7 +63,7 @@ const mainActions = async env => {
 // restart every 2 hours
 const autoRestartDelay = 2 * 60 * 60 * 1000;
 
-const minDelayIntervalSeconds = 30;
+const minDelayIntervalSeconds = 20;
 
 // Misc actions we want to take on shutdown.
 const shutdown = async () => {

@@ -69,8 +69,6 @@ const mergePullRequest = async pr => {
 // lol github doesn't like it if you just request the world.
 // they have some checks. 100 comments max which is what we're actually
 // worried abotu blowing. PRs 40 would probably be sufficient but whatever.
-// if you're active in non-samsara repositories, then this might fail for you. :shrug:
-// there's just no way I'm dealing with pagination for the time being.
 const maxNodes = 100;
 
 // if pullReqs is passed in, this is the identity function.
@@ -80,14 +78,18 @@ const getPrs = async pullReqs => {
         return pullReqs;
     }
 
-    // query for open PRs by the viewer (access token based)
-
-    const getQuery = rootQuery => `
-        query { 
-            ${rootQuery} {
-                login 
-                name 
-                pullRequests(last: ${30}, states:OPEN) {
+    const getQuery = startCursor => `
+        query {
+            repository(name: "${config.secrets.repo}", owner: "${config.secrets.repoowner}") {
+                nameWithOwner
+                pullRequests(first: 50, states:OPEN, orderBy: {field: CREATED_AT, direction: DESC}${
+                    startCursor ? `, after: "${startCursor}"` : ''
+                }) {
+                    pageInfo {
+                        hasNextPage
+                        startCursor
+                        endCursor
+                    }
                     nodes {
                         comments(last: ${maxNodes}) {
                             nodes {
@@ -106,6 +108,9 @@ const getPrs = async pullReqs => {
                         }
                         createdAt
                         updatedAt
+                        author {
+                            login
+                        }
                         body
                         title
                         number
@@ -130,7 +135,7 @@ const getPrs = async pullReqs => {
                             url
                         }
                         # uh, don't have more than 80 commits? (github has max 250 on this lmao)
-                        commits(last: 80) {
+                        commits(last: ${80}) {
                             nodes {
                                 commit {
                                     oid
@@ -147,20 +152,31 @@ const getPrs = async pullReqs => {
                         }
                     }
                 }
-            } 
+            }
         }
     `;
 
-    const allUsers = ['viewer', ...config.extraUsers.map(user => `user(login: "${user}")`)];
+    const prs = [];
+    let resp = await client.query(getQuery());
+    const appendPrs = response => prs.push(...response.body.data.repository.pullRequests.nodes);
+    appendPrs(resp);
+    const respToCursor = response =>
+        (resp.body.data.repository.pullRequests.pageInfo.hasNextPage &&
+            resp.body.data.repository.pullRequests.pageInfo.endCursor) ||
+        undefined;
+    let nextCursor = respToCursor(resp);
+    while (nextCursor) {
+        resp = await client.query(getQuery(nextCursor));
+        appendPrs(resp);
+        nextCursor = respToCursor(resp);
+    }
 
-    const prSets = await allUsers.mapAsync(async user => {
-        const data = (await client.query(getQuery(user))).body.data;
-        // different response struct based on viewer or user query.
-        const prs = (data.viewer && data.viewer.pullRequests.nodes) || data.user.pullRequests.nodes;
+    if (config.secrets.restrictUsersToFile) {
+        // we have all PRs, let's filter to users who are in extra users.
+        return prs.filter(pr => config.extraUsers.includes(pr.author.login));
+    } else {
         return prs;
-    });
-
-    return prSets.flat();
+    }
 };
 
 // prs that are open that are in the repo the app is configured for.
