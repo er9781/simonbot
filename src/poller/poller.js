@@ -1,5 +1,6 @@
 var github = require('../github/github');
 var buildkite = require('../buildkite/buildkite');
+const fs = require('fs');
 var fixer = require('../prfixer/fixer');
 var c = require('../common');
 var git = require('../git/git');
@@ -75,13 +76,19 @@ const shutdown = async () => {
     } catch (err) {
         console.log('shutdown actions failed', err);
     }
+
+    // Log number of sheeps we achieved.
+    if (!fs.existsSync('out/sheepCount.txt')) {
+        fs.writeFileSync('out/sheepCount.txt', '');
+    }
+    fs.appendFileSync('out/sheepCount.txt', `${github.numSheeps.numSheeps}\n`);
 };
 
 const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
     // buildkite.getLatestMasterBuild().then(console.log);
-    // shutdown().then();
-    // return;
+    shutdown().then();
+    return;
 
     console.assert(env);
 

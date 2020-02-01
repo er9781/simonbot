@@ -1,2 +1,4 @@
 secrets.json
 privatekey.pem
+out/**
+!out/touch.txt

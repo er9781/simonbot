@@ -31,6 +31,9 @@ exports.getUsername = async () => {
     return (await client.query(query)).body.data.viewer.login;
 };
 
+let numSheeps = { numSheeps: 0 };
+exports.numSheeps = numSheeps;
+
 const mergePullRequest = async pr => {
     // const mutation = `
     //     mutation {
@@ -54,13 +57,15 @@ const mergePullRequest = async pr => {
         console.log('attempting merge on ', pr.title);
         // v4 of the api doesn't support rebase flows. drop to v3 for this.
         const uri = `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/merge`;
-        return await client.v3request({
+        const resp = await client.v3request({
             method: 'PUT',
             uri,
             data: {
                 merge_method: 'rebase',
             },
         });
+        numSheeps.numSheeps++;
+        return resp;
     } catch (err) {
         console.log(err);
     }
