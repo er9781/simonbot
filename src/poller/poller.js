@@ -80,6 +80,7 @@ const shutdown = async () => {
 const fireloop = (env, startTime = Date.now()) => {
     // scratchpad.
     // buildkite.getLatestMasterBuild().then(console.log);
+    // shutdown().then();
     // return;
 
     console.assert(env);

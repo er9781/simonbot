@@ -68,7 +68,7 @@ const mergePullRequest = async pr => {
 
 // lol github doesn't like it if you just request the world.
 // they have some checks. 100 comments max which is what we're actually
-// worried abotu blowing. PRs 40 would probably be sufficient but whatever.
+// worried about blowing. PRs 40 would probably be sufficient but whatever.
 const maxNodes = 100;
 
 // if pullReqs is passed in, this is the identity function.
@@ -78,13 +78,18 @@ const getPrs = async pullReqs => {
         return pullReqs;
     }
 
+    const startMs = Date.now();
+
+    // NB. we set this to 30. At 50, we were consistently getting 502'ed by github.
+    const numPerPage = 30;
+
     const getQuery = startCursor => `
         query {
             repository(name: "${config.secrets.repo}", owner: "${config.secrets.repoowner}") {
                 nameWithOwner
-                pullRequests(first: 50, states:OPEN, orderBy: {field: CREATED_AT, direction: DESC}${
-                    startCursor ? `, after: "${startCursor}"` : ''
-                }) {
+                pullRequests(first: ${numPerPage}, states:OPEN, orderBy: {field: CREATED_AT, direction: DESC}${
+        startCursor ? `, after: "${startCursor}"` : ''
+    }) {
                     pageInfo {
                         hasNextPage
                         startCursor
@@ -101,7 +106,7 @@ const getPrs = async pullReqs => {
                                 id
                             }
                         }
-                        labels(last: ${10}) {
+                        labels(last: ${5}) {
                             nodes{
                                 name
                             }
@@ -165,11 +170,27 @@ const getPrs = async pullReqs => {
             resp.body.data.repository.pullRequests.pageInfo.endCursor) ||
         undefined;
     let nextCursor = respToCursor(resp);
+    let numErrors = 0;
     while (nextCursor) {
-        resp = await client.query(getQuery(nextCursor));
-        appendPrs(resp);
-        nextCursor = respToCursor(resp);
+        try {
+            resp = await client.query(getQuery(nextCursor));
+            appendPrs(resp);
+            nextCursor = respToCursor(resp);
+        } catch (err) {
+            numErrors++;
+
+            if (numErrors > 3) {
+                console.log('max errors in pr pagination. working with what we have.');
+                console.log(err);
+                break;
+            } else {
+                console.log('error on a page of PRs. retrying');
+                console.log(err);
+            }
+        }
     }
+
+    console.log('getting prs took seconds', (Date.now() - startMs) / 1000);
 
     if (config.secrets.restrictUsersToFile) {
         // we have all PRs, let's filter to users who are in extra users.
