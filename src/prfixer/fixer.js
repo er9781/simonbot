@@ -103,7 +103,7 @@ const handleRebasePr = async (env, pr, getLatestMasterBuild) => {
     if (isBehindBase) {
         return await rebasePr(env, pr);
     } else {
-        console.log('Already up to date with base');
+        console.log(pr.title, 'Already up to date with base');
     }
 };
 
