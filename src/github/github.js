@@ -227,21 +227,22 @@ const triggers = {
     mobileJank: 'JANK',
 };
 
-const prsToTriggered = async (triggerReason, textFilter, pullReqs) => {
+const prsToTriggered = async (triggerReason, textFilter, pullReqs, filterByLabelName = false) => {
     const prs = (await getOpenPrs(pullReqs)).filter(pr => {
+        // when requested, filter out any PRs that have a do not merge label.
+        if (filterByLabelName && pr.labels.nodes.some(l => l.name.toLowerCase() === 'do not merge')) {
+            return false;
+        }
         return textFilter(pr.body) || pr.comments.nodes.map(c => c.body).some(textFilter);
     });
-    if (filterByLabelName) {
-        prs = prs.filter(pr => {return !pr.labels.nodes.some(
-                l => l.name.toLowerCase() === 'do not merge')})
-      }
+
     // annotate the trigger reason.
     return prs.map(pr => ({ ...pr, triggerReason }));
-}
+};
 
 // a pr is shipped if one of the emojis present in any of the comments.
 // if you don't pass in pullReqs, they'll be queried from github.
-const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShippit, pullReqs, true);
+const getShippedPrs = async pullReqs => prsToTriggered(triggers.shipped, textMatchesShipit, pullReqs, true);
 const getUpdatePrs = async pullReqs => prsToTriggered(triggers.fixus, textMatchesUpdate, pullReqs);
 const getJankIndexUpdatingPrs = async pullReqs => prsToTriggered(triggers.mobileJank, textMatchesJankIndex, pullReqs);
 
