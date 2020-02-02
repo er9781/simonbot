@@ -91,7 +91,7 @@ const getPrs = async (pullReqs, getFullList) => {
         query {
             repository(name: "${config.secrets.repo}", owner: "${config.secrets.repoowner}") {
                 nameWithOwner
-                pullRequests(first: ${numPerPage}, states:OPEN, orderBy: {field: CREATED_AT, direction: DESC}${
+                pullRequests(first: ${numPerPage}, states:OPEN, orderBy: {field: UPDATED_AT, direction: DESC}${
         startCursor ? `, after: "${startCursor}"` : ''
     }) {
                     pageInfo {
