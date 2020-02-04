@@ -226,11 +226,15 @@ const getRefStatuses = async sha => {
 };
 
 const approvePr = async pr => {
-    const createResp = await client.v3request({
-        uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/reviews`,
-        method: 'POST',
-        data: { body: 'sheepy approved', event: 'APPROVE' },
-    });
+    // if sheepy has already approved, don't approve again.
+    if (!getHasSheepyApproved(pr)) {
+        const resp = await client.v3request({
+            uri: `/repos/${config.secrets.repoowner}/${config.secrets.repo}/pulls/${pr.number}/reviews`,
+            method: 'POST',
+            data: { body: 'bhaaaa', event: 'APPROVE' },
+        });
+        await logEvent(pr, 'approved');
+    }
 };
 exports.approvePr = approvePr;
 
@@ -374,6 +378,7 @@ const getBotEvents = pr => {
 const getNumberOfRebases = pr => getBotEvents(pr).filter(e => e.type === 'rebase').length;
 const getJankHasNotBeenSet = pr => getBotEvents(pr).filter(e => e.type === 'janked').length === 0;
 const getRebaseSkippedLogs = pr => getBotEvents(pr).filter(e => e.type === 'rebaseSkipped');
+const getHasSheepyApproved = pr => getBotEvents(pr).filter(e => e.type === 'approved').length > 0;
 
 exports.getJankHasNotBeenSet = getJankHasNotBeenSet;
 exports.getNumberOfRebases = getNumberOfRebases;
