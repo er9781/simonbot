@@ -324,6 +324,8 @@ const getPrsToFixup = async pullReqs => {
     const prs = _.uniqBy([...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))], pr => pr.id);
     const failingPrs = await prs.filterAsync(hasActionableFailingStatus);
 
+    // console.log(prs.map(pr => pr.title));
+
     // we want to split out ones that are failing generically vs due to gitdiff.
     // so we annotate each pr with the reason it failed.
     const failureReasons = await failingPrs.mapAsync(async pr => {

@@ -30,7 +30,7 @@ const mainActions = async env => {
     // we get the open prs up front so that each call below won't need to do it.
     // only get the full list of PRs every 20 attempts. This should ensure good latency for 95%
     // of cases.
-    const openPrs = await github.getOpenPrs(undefined, mainActionsCounter % 20 === 0);
+    const openPrs = await github.getOpenPrs(undefined, mainActionsCounter % 10 === 0);
 
     if (config.secrets.autoApproveFixMaster) {
         // Go approve fix master gen'ed PRs
