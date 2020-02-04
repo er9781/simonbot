@@ -3,3 +3,4 @@ privatekey.pem
 out/**
 !out/touch.txt
 extrausers.txt
+data.json

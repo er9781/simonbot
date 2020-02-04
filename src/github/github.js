@@ -85,7 +85,7 @@ const getPrs = async (pullReqs, getFullList) => {
     const startMs = Date.now();
 
     // NB. we set this to 30. At 50, we were consistently getting 502'ed by github.
-    const numPerPage = 30;
+    const numPerPage = 25;
 
     const getQuery = startCursor => `
         query {
@@ -183,7 +183,7 @@ const getPrs = async (pullReqs, getFullList) => {
             // we stop at 120prs unless told to get the full list.
             // we use this to reduce latency on most calls, but every so often
             // will check all open PRs.
-            if (getFullList || prs.length < 120) {
+            if (getFullList || prs.length < 4 * numPerPage) {
                 nextCursor = respToCursor(resp);
             } else {
                 nextCursor = undefined;
@@ -206,7 +206,8 @@ const getPrs = async (pullReqs, getFullList) => {
 
     if (config.secrets.restrictUsersToFile) {
         // we have all PRs, let's filter to users who are in extra users.
-        return prs.filter(pr => config.extraUsers.includes(pr.author.login));
+        const lowercasedUsers = config.extraUsers.map(user => user.toLowerCase());
+        return prs.filter(pr => lowercasedUsers.includes(pr.author.login.toLowerCase()));
     } else {
         return prs;
     }
@@ -273,7 +274,7 @@ const hasActionableFailingStatus = async pr => {
 
 // github changed recently to actually store more of these as unicode emojis rather
 // than the `:...:` format. so let's support both. sigh
-const shippedEmojis = [':shipit:', ':sheep:', '🐑'];
+const shippedEmojis = [':shipit:', ':sheep:', '🐑', '🐑'];
 const updateMeEmojis = [':fire_engine:', '🚒', ':man_health_worker:', '👨‍⚕'];
 
 const textMatchesString = string => text => text.includes(string);
@@ -323,8 +324,6 @@ const getPrsToFixup = async pullReqs => {
     // dedupe by id in case a pr is both shipped and fixuped. We put shipped PRs first so that shipit action takes priority.
     const prs = _.uniqBy([...(await getShippedPrs(pulls)), ...(await getUpdatePrs(pulls))], pr => pr.id);
     const failingPrs = await prs.filterAsync(hasActionableFailingStatus);
-
-    // console.log(prs.map(pr => pr.title));
 
     // we want to split out ones that are failing generically vs due to gitdiff.
     // so we annotate each pr with the reason it failed.

@@ -13,3 +13,17 @@ exports.extraUsers = (() => {
     // TODO consider validating the list?
     return contents.split('\n').filter(line => line.length);
 })();
+
+exports.startingMainActionsCounter = (() => {
+    if (fs.existsSync('data.json')) {
+        const contents = fs.readFileSync('data.json', 'utf-8');
+        const json = (contents.trim() && JSON.parse(contents.trim())) || {};
+        return json.mainActionsCounter || 0;
+    } else {
+        return 0;
+    }
+})();
+
+exports.writeMainActionsCounter = mainActionsCounter => {
+    fs.writeFileSync('data.json', JSON.stringify({ mainActionsCounter }));
+};
